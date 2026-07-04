@@ -126,17 +126,30 @@ If `TELEMETRY_API_KEY_HEADER` is `authorization`, the exporter sends `Authorizat
 
 ```sh
 cp .env.example .env
+# Set BETTER_AUTH_SECRET in .env, for example:
+openssl rand -base64 32
 docker compose up --build
 ```
 
-This local full-stack Compose file starts Postgres, Redis, API, Platform, Admin, and Worker. The Docker services still use the single root `.env`; `DOCKER_DATABASE_URL` and `DOCKER_REDIS_URL` point containers at the Compose service names. Postgres and Redis are internal-only in `docker-compose.yaml`; use `docker-compose.dev.yaml` when you want host access to those ports for local tooling.
+This full-stack Compose file starts Caddy, Postgres, Redis, API, and Worker. Caddy serves the built Platform and Admin frontend assets, reverse proxies the API, and is the only public service. API, Postgres, Redis, and Worker stay internal to the Compose network. The Docker services still use the single root `.env`; `DOCKER_DATABASE_URL` and `DOCKER_REDIS_URL` point containers at the Compose service names.
 
 The API container runs Prisma migrations with `pnpm db:deploy` on startup. If you already created a local Compose database with the older `db:push` flow, reset the local volume or baseline the database before switching to migrations.
 
-The default local ports are:
+The default local URLs are:
 
-- API: `http://localhost:8000`
-- Platform: `http://localhost:3000`
-- Admin: `http://localhost:4000`
+- Platform: `http://localhost`
+- Admin: `http://admin.localhost`
+- API health: `http://api.localhost/health`
 - Postgres with `docker-compose.dev.yaml`: `localhost:15432`
 - Redis with `docker-compose.dev.yaml`: `localhost:16379`
+
+For production, set the public addresses before building so the frontend bundle and auth settings point at the proxied API:
+
+```env
+PLATFORM_SITE_ADDRESS="app.example.com"
+ADMIN_SITE_ADDRESS="admin.example.com"
+API_SITE_ADDRESS="api.example.com"
+VITE_API_URL="https://api.example.com"
+BETTER_AUTH_URL="https://api.example.com"
+CLIENT_ORIGINS="https://app.example.com,https://admin.example.com"
+```
