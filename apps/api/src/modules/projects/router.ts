@@ -15,6 +15,9 @@ import {
   listProjects,
   updateProject,
 } from "./services";
+import { milestonesRouter } from "../milestones/router";
+import { paymentsRouter } from "../payments/router";
+import { projectNotesRouter } from "../project-notes/router";
 import { tasksRouter } from "../tasks/router";
 
 export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
@@ -37,6 +40,9 @@ export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
     return c.json(await createProject(c.req.valid("json")), 201);
   })
   .route("/:projectId/tasks", tasksRouter)
+  .route("/:projectId/milestones", milestonesRouter)
+  .route("/:projectId/payments", paymentsRouter)
+  .route("/:projectId/notes", projectNotesRouter)
   .get("/:projectId", zValidator("param", projectParamSchema), async (c) => {
     const user = requireUser(c);
 
