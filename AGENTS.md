@@ -3,7 +3,8 @@
 Single-user, MCP-native project management tool. Read before touching code:
 
 - [CONTEXT.md](./CONTEXT.md) — domain glossary. Use these terms exactly (Customer, Project, Task, Milestone, Payment, Note, Secret, MCP Token).
-- [docs/corvex-plan.md](./docs/corvex-plan.md) — implementation plan and sequencing.
+- [docs/roadmap.md](./docs/roadmap.md) — **start here**: current state + remaining work as ready-to-run session prompts.
+- [docs/corvex-plan.md](./docs/corvex-plan.md) — full spec (locked decisions, Phase 2 MCP details, gotchas).
 - [docs/adr/](./docs/adr/) — 0001 secrets encryption, 0002 project-scoped MCP tokens. Do not violate these.
 - `.claude/skills/corvex-design/` — design system (Linear-like density, base-mira purple theme). Mandatory for any UI work.
 
@@ -32,7 +33,7 @@ pnpm db:generate         # prisma generate — ALWAYS after schema.prisma change
 
 ## Status (update this list when you ship a module)
 
-API modules done: customers, projects, tasks. Pending (see docs/corvex-plan.md order): milestones, payments, project-notes, secrets, mcp-tokens, then Phase 2 MCP server, then platform UI. Cross-check `apps/api/src/modules/` against `schema.prisma` models if unsure.
+API modules done: customers, projects, tasks. Pending: milestones, payments, project-notes, secrets, mcp-tokens, platform UI, Phase 2 MCP server — session-by-session prompts in docs/roadmap.md. Cross-check `apps/api/src/modules/` against `schema.prisma` models if unsure.
 
 ## API module pattern (copy `modules/customers/` for flat resources, `modules/tasks/` for project-nested)
 
