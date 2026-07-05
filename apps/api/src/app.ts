@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { auth } from "./modules/auth/auth";
 import { type AuthVariables, loadAuthSession } from "./modules/auth/middleware";
+import { customersRouter } from "./modules/customers/router";
 import { profileRouter } from "./modules/profile/router";
 import { usersRouter } from "./modules/users/router";
 
@@ -33,6 +34,7 @@ export const app = new Hono<{ Variables: AuthVariables }>()
   .on(["POST", "GET"], "/api/auth/*", (c) => {
     return auth.handler(c.req.raw);
   })
+  .route("/customers", customersRouter)
   .route("/profile", profileRouter)
   .route("/users", usersRouter);
 

@@ -18,9 +18,10 @@ describe("secret crypto", () => {
 
   it("rejects tampered values", () => {
     const encrypted = encryptSecret("secret", key);
-    const tampered = `${encrypted.slice(0, -1)}A`;
+    const parts = encrypted.split(".");
+    parts[2] = "AA";
 
-    expect(() => decryptSecret(tampered, key)).toThrow();
+    expect(() => decryptSecret(parts.join("."), key)).toThrow();
   });
 
   it("rejects the wrong key", () => {

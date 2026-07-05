@@ -3,6 +3,11 @@ import { app } from "./app";
 
 const mocks = vi.hoisted(() => ({
   authHandler: vi.fn(),
+  customerCreate: vi.fn(),
+  customerDelete: vi.fn(),
+  customerFindMany: vi.fn(),
+  customerFindUnique: vi.fn(),
+  customerUpdate: vi.fn(),
   findMany: vi.fn(),
   findUnique: vi.fn(),
   getSession: vi.fn(),
@@ -20,6 +25,13 @@ vi.mock("./modules/auth/auth", () => ({
 
 vi.mock("./utils/prisma", () => ({
   prisma: {
+    customer: {
+      create: mocks.customerCreate,
+      delete: mocks.customerDelete,
+      findMany: mocks.customerFindMany,
+      findUnique: mocks.customerFindUnique,
+      update: mocks.customerUpdate,
+    },
     user: {
       findMany: mocks.findMany,
       findUnique: mocks.findUnique,
@@ -33,12 +45,24 @@ const baseDate = new Date("2026-07-03T00:00:00.000Z");
 describe("api app", () => {
   beforeEach(() => {
     mocks.authHandler.mockReset();
+    mocks.customerCreate.mockReset();
+    mocks.customerDelete.mockReset();
+    mocks.customerFindMany.mockReset();
+    mocks.customerFindUnique.mockReset();
+    mocks.customerUpdate.mockReset();
     mocks.findMany.mockReset();
     mocks.findUnique.mockReset();
     mocks.getSession.mockReset();
     mocks.update.mockReset();
 
     mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
+    mocks.customerCreate.mockImplementation(({ data }) => Promise.resolve(createCustomer(data)));
+    mocks.customerDelete.mockResolvedValue(createCustomer());
+    mocks.customerFindMany.mockResolvedValue([]);
+    mocks.customerFindUnique.mockResolvedValue(null);
+    mocks.customerUpdate.mockImplementation(({ data, where }) =>
+      Promise.resolve(createCustomer({ id: where.id, ...data })),
+    );
     mocks.findMany.mockResolvedValue([]);
     mocks.findUnique.mockResolvedValue(null);
     mocks.getSession.mockResolvedValue(null);
@@ -128,6 +152,151 @@ describe("api app", () => {
     await expect(response.json()).resolves.toEqual({ error: "invalid_cursor" });
     expect(response.status).toBe(400);
     expect(mocks.findMany).not.toHaveBeenCalled();
+  });
+
+  it("requires a session to list customers", async () => {
+    const response = await app.request("/customers");
+
+    await expect(response.json()).resolves.toEqual({ error: "unauthorized" });
+    expect(response.status).toBe(401);
+    expect(mocks.customerFindMany).not.toHaveBeenCalled();
+  });
+
+  it("lists customers with project counts", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.customerFindMany.mockResolvedValue([
+      {
+        ...createCustomer({ id: "customer-1", name: "Acme" }),
+        _count: { projects: 2 },
+      },
+    ]);
+
+    const response = await app.request("/customers");
+
+    await expect(response.json()).resolves.toEqual({
+      customers: [
+        {
+          company: null,
+          createdAt: baseDate.toISOString(),
+          email: null,
+          id: "customer-1",
+          name: "Acme",
+          notes: null,
+          phone: null,
+          projectCount: 2,
+          updatedAt: baseDate.toISOString(),
+        },
+      ],
+    });
+    expect(response.status).toBe(200);
+    expect(mocks.customerFindMany.mock.calls[0]?.[0].orderBy).toEqual([
+      { name: "asc" },
+      { id: "asc" },
+    ]);
+  });
+
+  it("creates a customer", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+
+    const response = await app.request("/customers", {
+      body: JSON.stringify({ company: "Acme Inc", email: " ", name: "  Acme  " }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    await expect(response.json()).resolves.toEqual({
+      customer: {
+        company: "Acme Inc",
+        createdAt: baseDate.toISOString(),
+        email: null,
+        id: "customer-1",
+        name: "Acme",
+        notes: null,
+        phone: null,
+        updatedAt: baseDate.toISOString(),
+      },
+    });
+    expect(response.status).toBe(201);
+    expect(mocks.customerCreate.mock.calls[0]?.[0].data).toEqual({
+      company: "Acme Inc",
+      email: null,
+      name: "Acme",
+    });
+  });
+
+  it("returns a customer detail with projects", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.customerFindUnique.mockResolvedValue({
+      ...createCustomer({ id: "customer-1", name: "Acme" }),
+      _count: { projects: 1 },
+      projects: [createCustomerProject()],
+    });
+
+    const response = await app.request("/customers/customer-1");
+
+    await expect(response.json()).resolves.toEqual({
+      customer: {
+        company: null,
+        createdAt: baseDate.toISOString(),
+        email: null,
+        id: "customer-1",
+        name: "Acme",
+        notes: null,
+        phone: null,
+        projectCount: 1,
+        projects: [
+          {
+            budgetAmount: "1200.50",
+            createdAt: baseDate.toISOString(),
+            currency: "USD",
+            deadline: baseDate.toISOString(),
+            id: "project-1",
+            name: "Website",
+            status: "Active",
+            updatedAt: baseDate.toISOString(),
+          },
+        ],
+        updatedAt: baseDate.toISOString(),
+      },
+    });
+    expect(response.status).toBe(200);
+  });
+
+  it("returns not_found for missing customers", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+
+    const response = await app.request("/customers/missing");
+
+    await expect(response.json()).resolves.toEqual({ error: "not_found" });
+    expect(response.status).toBe(404);
+  });
+
+  it("updates a customer", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.customerFindUnique.mockResolvedValue(createCustomerDetail());
+
+    const response = await app.request("/customers/customer-1", {
+      body: JSON.stringify({ phone: "555-0100" }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.customerUpdate.mock.calls[0]?.[0]).toMatchObject({
+      data: { phone: "555-0100" },
+      where: { id: "customer-1" },
+    });
+  });
+
+  it("deletes a customer", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.customerFindUnique.mockResolvedValue(createCustomerDetail());
+
+    const response = await app.request("/customers/customer-1", { method: "DELETE" });
+
+    await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(response.status).toBe(200);
+    expect(mocks.customerDelete).toHaveBeenCalledWith({ where: { id: "customer-1" } });
   });
 
   it("requires a session to update profile", async () => {
@@ -263,6 +432,54 @@ function createAuthSession(role: string) {
       role,
       updatedAt: baseDate,
     },
+  };
+}
+
+function createCustomer({
+  company = null,
+  email = null,
+  id = "customer-1",
+  name = "Acme",
+  notes = null,
+  phone = null,
+}: {
+  company?: string | null;
+  email?: string | null;
+  id?: string;
+  name?: string;
+  notes?: string | null;
+  phone?: string | null;
+} = {}) {
+  return {
+    company,
+    createdAt: baseDate,
+    email,
+    id,
+    name,
+    notes,
+    phone,
+    updatedAt: baseDate,
+  };
+}
+
+function createCustomerProject() {
+  return {
+    budgetAmount: { toString: () => "1200.50" },
+    createdAt: baseDate,
+    currency: "USD",
+    deadline: baseDate,
+    id: "project-1",
+    name: "Website",
+    status: "Active",
+    updatedAt: baseDate,
+  };
+}
+
+function createCustomerDetail() {
+  return {
+    ...createCustomer(),
+    _count: { projects: 0 },
+    projects: [],
   };
 }
 
