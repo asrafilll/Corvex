@@ -30,12 +30,17 @@ pnpm db:migrate          # prisma migrate dev (needs local Postgres :15432 — d
 pnpm db:generate         # prisma generate — ALWAYS after schema.prisma changes, before typecheck
 ```
 
-## API module pattern (copy `apps/api/src/modules/profile/`)
+## Status (update this list when you ship a module)
+
+API modules done: customers, projects, tasks. Pending (see docs/corvex-plan.md order): milestones, payments, project-notes, secrets, mcp-tokens, then Phase 2 MCP server, then platform UI. Cross-check `apps/api/src/modules/` against `schema.prisma` models if unsure.
+
+## API module pattern (copy `modules/customers/` for flat resources, `modules/tasks/` for project-nested)
 
 - One dir per module: `router.ts` / `schema.ts` (zod) / `services.ts` (prisma) / `types.ts`.
 - Router = single chained Hono expression; mount via `.route(...)` in `app.ts` so `AppType` inference feeds the RPC client.
 - Auth guards from `modules/auth/middleware.ts` (`requireUser` for Corvex routes) — first thing in every handler, 401 on fail.
-- Nested project routes (`/projects/:projectId/...`) must 404 via shared `findProjectOrNull` before acting.
+- Nested project routes (`/projects/:projectId/...`) must 404 before acting: `findProjectOrNull` when there's no child lookup, or a child lookup scoped by `projectId` (e.g. `findTaskOrNull`) — FK cascade guarantees the project exists, don't double-query.
+- Domain errors: service throws named Error subclass (e.g. `InvalidTaskReorderError`), router catches → 400 with snake_case `error` code.
 - zValidator for `param`, `query`, `json`. Zod enums mirror Prisma enums from one exported array — no drift.
 
 ## Hard rules
@@ -48,7 +53,7 @@ pnpm db:generate         # prisma generate — ALWAYS after schema.prisma change
 
 ## Tests
 
-Vitest. API style = `apps/api/src/app.test.ts`: `vi.mock` prisma (`./utils/prisma`) and auth, drive `app.request(...)`. Every new module ships with router tests: 401 unauth, happy path, 404 missing parent, plus module-specific invariants (secrets never leak `encryptedValue`, token create returns raw once).
+Vitest. API style: `vi.mock` prisma (`./utils/prisma`) and auth, drive `app.request(...)` — see `apps/api/src/app.test.ts`. That file is already too large (lexa flags it); new modules put router tests in `apps/api/src/modules/<module>/router.test.ts` instead, extracting shared mock setup into a helper when first needed. Every new module ships with router tests: 401 unauth, happy path, 404 missing parent, plus module-specific invariants (secrets never leak `encryptedValue`, token create returns raw once).
 
 ## Definition of done
 
