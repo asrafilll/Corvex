@@ -17,6 +17,12 @@ const mocks = vi.hoisted(() => ({
   projectFindMany: vi.fn(),
   projectFindUnique: vi.fn(),
   projectUpdate: vi.fn(),
+  taskCreate: vi.fn(),
+  taskDelete: vi.fn(),
+  taskFindFirst: vi.fn(),
+  taskFindMany: vi.fn(),
+  taskUpdate: vi.fn(),
+  transaction: vi.fn(),
   update: vi.fn(),
 }));
 
@@ -46,11 +52,19 @@ vi.mock("./utils/prisma", () => ({
       findUnique: mocks.projectFindUnique,
       update: mocks.projectUpdate,
     },
+    task: {
+      create: mocks.taskCreate,
+      delete: mocks.taskDelete,
+      findFirst: mocks.taskFindFirst,
+      findMany: mocks.taskFindMany,
+      update: mocks.taskUpdate,
+    },
     user: {
       findMany: mocks.findMany,
       findUnique: mocks.findUnique,
       update: mocks.update,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -72,6 +86,12 @@ describe("api app", () => {
     mocks.projectFindMany.mockReset();
     mocks.projectFindUnique.mockReset();
     mocks.projectUpdate.mockReset();
+    mocks.taskCreate.mockReset();
+    mocks.taskDelete.mockReset();
+    mocks.taskFindFirst.mockReset();
+    mocks.taskFindMany.mockReset();
+    mocks.taskUpdate.mockReset();
+    mocks.transaction.mockReset();
     mocks.update.mockReset();
 
     mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
@@ -92,6 +112,14 @@ describe("api app", () => {
     mocks.projectUpdate.mockImplementation(({ data, where }) =>
       Promise.resolve(createProject({ id: where.id, ...data })),
     );
+    mocks.taskCreate.mockImplementation(({ data }) => Promise.resolve(createTask(data)));
+    mocks.taskDelete.mockResolvedValue(createTask());
+    mocks.taskFindFirst.mockResolvedValue(null);
+    mocks.taskFindMany.mockResolvedValue([]);
+    mocks.taskUpdate.mockImplementation(({ data, where }) =>
+      Promise.resolve(createTask({ id: where.id, ...data })),
+    );
+    mocks.transaction.mockImplementation((operations) => Promise.all(operations));
     mocks.update.mockImplementation(({ data, where }) =>
       Promise.resolve({
         createdAt: baseDate,
@@ -432,6 +460,128 @@ describe("api app", () => {
     expect(mocks.projectDelete).toHaveBeenCalledWith({ where: { id: "project-1" } });
   });
 
+  it("requires a session to list tasks", async () => {
+    const response = await app.request("/projects/project-1/tasks");
+
+    await expect(response.json()).resolves.toEqual({ error: "unauthorized" });
+    expect(response.status).toBe(401);
+    expect(mocks.taskFindMany).not.toHaveBeenCalled();
+  });
+
+  it("returns not_found when listing tasks for a missing project", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+
+    const response = await app.request("/projects/missing/tasks");
+
+    await expect(response.json()).resolves.toEqual({ error: "not_found" });
+    expect(response.status).toBe(404);
+    expect(mocks.taskFindMany).not.toHaveBeenCalled();
+  });
+
+  it("lists project tasks", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.taskFindMany.mockResolvedValue([createTask()]);
+
+    const response = await app.request("/projects/project-1/tasks");
+
+    await expect(response.json()).resolves.toMatchObject({
+      tasks: [{ id: "task-1", order: 0, projectId: "project-1", title: "Design" }],
+    });
+    expect(response.status).toBe(200);
+    expect(mocks.taskFindMany.mock.calls[0]?.[0].where).toEqual({ projectId: "project-1" });
+  });
+
+  it("creates a project task", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+
+    const response = await app.request("/projects/project-1/tasks", {
+      body: JSON.stringify({ order: 0, title: "  Design  " }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    expect(response.status).toBe(201);
+    expect(mocks.taskCreate.mock.calls[0]?.[0].data).toMatchObject({
+      order: 0,
+      projectId: "project-1",
+      title: "Design",
+    });
+  });
+
+  it("updates a project task", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.taskFindFirst.mockResolvedValue({ id: "task-1" });
+
+    const response = await app.request("/projects/project-1/tasks/task-1", {
+      body: JSON.stringify({ status: "Done" }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.taskUpdate.mock.calls[0]?.[0]).toMatchObject({
+      data: { status: "Done" },
+      where: { id: "task-1" },
+    });
+  });
+
+  it("deletes a project task", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.taskFindFirst.mockResolvedValue({ id: "task-1" });
+
+    const response = await app.request("/projects/project-1/tasks/task-1", { method: "DELETE" });
+
+    await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(response.status).toBe(200);
+    expect(mocks.taskDelete).toHaveBeenCalledWith({ where: { id: "task-1" } });
+  });
+
+  it("reorders project tasks", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.taskFindMany
+      .mockResolvedValueOnce([{ id: "task-1" }, { id: "task-2" }])
+      .mockResolvedValueOnce([
+        createTask({ id: "task-2", order: 0 }),
+        createTask({ id: "task-1", order: 1 }),
+      ]);
+
+    const response = await app.request("/projects/project-1/tasks/reorder", {
+      body: JSON.stringify({ taskIds: ["task-2", "task-1"] }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      tasks: [
+        { id: "task-2", order: 0 },
+        { id: "task-1", order: 1 },
+      ],
+    });
+    expect(response.status).toBe(200);
+    expect(mocks.transaction).toHaveBeenCalledOnce();
+  });
+
+  it("rejects task reorders with a mismatched id set", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.taskFindMany.mockResolvedValue([{ id: "task-1" }]);
+
+    const response = await app.request("/projects/project-1/tasks/reorder", {
+      body: JSON.stringify({ taskIds: ["task-2"] }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    await expect(response.json()).resolves.toEqual({ error: "invalid_task_order" });
+    expect(response.status).toBe(400);
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
   it("requires a session to update profile", async () => {
     const response = await app.request("/profile", {
       body: JSON.stringify({ name: "Updated User" }),
@@ -660,6 +810,20 @@ function createProjectDetail() {
     ],
     secrets: [{ description: "CMS login", id: "secret-1", name: "WordPress" }],
     tasks: [],
+  };
+}
+
+function createTask(input: Record<string, unknown> = {}) {
+  return {
+    description: null,
+    dueDate: null,
+    id: "task-1",
+    order: 0,
+    priority: "None",
+    projectId: "project-1",
+    status: "Todo",
+    title: "Design",
+    ...input,
   };
 }
 

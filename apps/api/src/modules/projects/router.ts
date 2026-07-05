@@ -15,6 +15,7 @@ import {
   listProjects,
   updateProject,
 } from "./services";
+import { tasksRouter } from "../tasks/router";
 
 export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
   .get("/", zValidator("query", projectsQuerySchema), async (c) => {
@@ -35,6 +36,7 @@ export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
 
     return c.json(await createProject(c.req.valid("json")), 201);
   })
+  .route("/:projectId/tasks", tasksRouter)
   .get("/:projectId", zValidator("param", projectParamSchema), async (c) => {
     const user = requireUser(c);
 
