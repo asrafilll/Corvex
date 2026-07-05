@@ -10,13 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as PrototypeStylesRouteImport } from './routes/prototype-styles'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
+import { Route as CustomersIndexRouteImport } from './routes/customers.index'
+import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
+import { Route as CustomersCustomerIdRouteImport } from './routes/customers.$customerId'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrototypeStylesRoute = PrototypeStylesRouteImport.update({
+  id: '/prototype-styles',
+  path: '/prototype-styles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -34,39 +44,107 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersIndexRoute = CustomersIndexRouteImport.update({
+  id: '/customers/',
+  path: '/customers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
+  id: '/projects/$projectId',
+  path: '/projects/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersCustomerIdRoute = CustomersCustomerIdRouteImport.update({
+  id: '/customers/$customerId',
+  path: '/customers/$customerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/prototype-styles': typeof PrototypeStylesRoute
   '/register': typeof RegisterRoute
+  '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/customers/': typeof CustomersIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/prototype-styles': typeof PrototypeStylesRoute
   '/register': typeof RegisterRoute
+  '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/customers': typeof CustomersIndexRoute
+  '/projects': typeof ProjectsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/prototype-styles': typeof PrototypeStylesRoute
   '/register': typeof RegisterRoute
+  '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/customers/': typeof CustomersIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/profile' | '/register'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/profile'
+    | '/prototype-styles'
+    | '/register'
+    | '/customers/$customerId'
+    | '/projects/$projectId'
+    | '/customers/'
+    | '/projects/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/profile' | '/register'
-  id: '__root__' | '/' | '/login' | '/profile' | '/register'
+  to:
+    | '/'
+    | '/login'
+    | '/profile'
+    | '/prototype-styles'
+    | '/register'
+    | '/customers/$customerId'
+    | '/projects/$projectId'
+    | '/customers'
+    | '/projects'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/profile'
+    | '/prototype-styles'
+    | '/register'
+    | '/customers/$customerId'
+    | '/projects/$projectId'
+    | '/customers/'
+    | '/projects/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
+  PrototypeStylesRoute: typeof PrototypeStylesRoute
   RegisterRoute: typeof RegisterRoute
+  CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
+  ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
+  CustomersIndexRoute: typeof CustomersIndexRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -76,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prototype-styles': {
+      id: '/prototype-styles'
+      path: '/prototype-styles'
+      fullPath: '/prototype-styles'
+      preLoaderRoute: typeof PrototypeStylesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -99,6 +184,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers/': {
+      id: '/customers/'
+      path: '/customers'
+      fullPath: '/customers/'
+      preLoaderRoute: typeof CustomersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId': {
+      id: '/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof ProjectsProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers/$customerId': {
+      id: '/customers/$customerId'
+      path: '/customers/$customerId'
+      fullPath: '/customers/$customerId'
+      preLoaderRoute: typeof CustomersCustomerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -106,7 +219,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
+  PrototypeStylesRoute: PrototypeStylesRoute,
   RegisterRoute: RegisterRoute,
+  CustomersCustomerIdRoute: CustomersCustomerIdRoute,
+  ProjectsProjectIdRoute: ProjectsProjectIdRoute,
+  CustomersIndexRoute: CustomersIndexRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

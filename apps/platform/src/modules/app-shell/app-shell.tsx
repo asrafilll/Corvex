@@ -21,12 +21,25 @@ import {
 import { toast } from "@repo/ui/components/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboardIcon, LogOutIcon, MonitorIcon, UserRoundIcon } from "lucide-react";
+import {
+  FolderKanbanIcon,
+  LayoutDashboardIcon,
+  LogOutIcon,
+  MonitorIcon,
+  UserRoundIcon,
+  UsersIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { meQueryOptions, useLogoutMutation } from "../auth/hooks/use-auth";
 import { HeaderControls } from "./header-controls";
 
-export function PlatformAppShell({ children }: { children: ReactNode }) {
+export function PlatformAppShell({
+  children,
+  fullWidth = false,
+}: {
+  children: ReactNode;
+  fullWidth?: boolean;
+}) {
   const { t } = useTranslation();
   const location = useLocation();
   const user = useQuery(meQueryOptions);
@@ -47,6 +60,8 @@ export function PlatformAppShell({ children }: { children: ReactNode }) {
 
   const navItems = [
     { icon: LayoutDashboardIcon, label: t("nav.dashboard"), to: "/" },
+    { icon: FolderKanbanIcon, label: t("nav.projects"), to: "/projects" },
+    { icon: UsersIcon, label: t("nav.customers"), to: "/customers" },
     { icon: UserRoundIcon, label: t("nav.profile"), to: "/profile" },
   ] as const;
 
@@ -78,7 +93,11 @@ export function PlatformAppShell({ children }: { children: ReactNode }) {
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
                       asChild
-                      isActive={location.pathname === item.to}
+                      isActive={
+                        item.to === "/"
+                          ? location.pathname === "/"
+                          : location.pathname.startsWith(item.to)
+                      }
                       tooltip={item.label}
                     >
                       <Link to={item.to}>
@@ -139,7 +158,13 @@ export function PlatformAppShell({ children }: { children: ReactNode }) {
           </div>
           <HeaderControls />
         </header>
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-8 lg:px-8">
+        <div
+          className={
+            fullWidth
+              ? "flex w-full flex-1 flex-col"
+              : "mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-8 lg:px-8"
+          }
+        >
           {children}
         </div>
       </SidebarInset>

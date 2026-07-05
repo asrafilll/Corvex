@@ -1,6 +1,8 @@
 import { hc } from "hono/client";
 import type { AppType } from "@repo/api";
 
+export type { InferRequestType, InferResponseType } from "hono/client";
+
 export function createApiClient(baseUrl: string) {
   return hc<AppType>(baseUrl, {
     init: {

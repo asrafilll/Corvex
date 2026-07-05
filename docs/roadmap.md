@@ -12,7 +12,9 @@ Done and pushed on `main`:
 - Session 2 done (2026-07-05): `secrets/` (encrypted create/update, POST reveal, 409 duplicate name via P2002 → `DuplicateSecretNameError`) + `mcp-tokens/` (raw `cvx_` token returned once on create, sha256 hash stored, revoke). Token generate/hash helpers in `src/utils/mcp-token.ts` for Session 5 reuse. No body-logging middleware exists in app.ts — confirmed.
 - Design locked: "Linear Dense" — `.claude/skills/corvex-design/SKILL.md` has the layout rules (three-pane detail, h-8 task rows, priority dots). Invoke that skill before any UI work.
 
-Not started: all platform UI, MCP server.
+Not started: project detail screen (Session 4), MCP server.
+
+Session 3 done (2026-07-05): react-markdown+remark-gfm installed; shell nav (Projects/Customers, `fullWidth` prop on `PlatformAppShell` for dense pages); hooks in `modules/{projects,customers}/hooks/` over shared `lib/api.ts` client (`InferRequestType` re-exported from `@repo/api-client`); `projects.index` (status tabs, table, create dialog), `customers.index` + `customers.$customerId` (create/edit dialogs), minimal `projects.$projectId` placeholder for Session 4. Verified live in light+dark. Local dev note: repo `.env` (gitignored) points at dedicated `corvex` DB + API_PORT 8010 because the shared `monorepo_template` DB/port 8000 are occupied by another project; vite `envDir` is repo root.
 
 Known debt (fold into the session that touches the area, don't do it standalone unless idle):
 
@@ -60,7 +62,7 @@ Read AGENTS.md, docs/adr/0001, docs/adr/0002, docs/roadmap.md (Session 2). Use a
 Tests in module router.test.ts files: list responses contain no encryptedValue/tokenHash anywhere in the JSON (assert on the serialized body), reveal round-trips, duplicate name 409s in same project but not across projects, create returns cvx_ token while the prisma mock received only a hash, revoke flips the flag, 401/404 guards. Finish with typecheck, test, check:fix, commit, push.
 ```
 
-## Session 3 — Platform UI: shell, customers, projects list
+## Session 3 — Platform UI: shell, customers, projects list — ✅ DONE
 
 First UI session. Invoke the corvex-design skill and follow it strictly.
 
