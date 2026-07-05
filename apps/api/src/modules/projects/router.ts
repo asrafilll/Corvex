@@ -15,9 +15,11 @@ import {
   listProjects,
   updateProject,
 } from "./services";
+import { mcpTokensRouter } from "../mcp-tokens/router";
 import { milestonesRouter } from "../milestones/router";
 import { paymentsRouter } from "../payments/router";
 import { projectNotesRouter } from "../project-notes/router";
+import { secretsRouter } from "../secrets/router";
 import { tasksRouter } from "../tasks/router";
 
 export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
@@ -43,6 +45,8 @@ export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
   .route("/:projectId/milestones", milestonesRouter)
   .route("/:projectId/payments", paymentsRouter)
   .route("/:projectId/notes", projectNotesRouter)
+  .route("/:projectId/secrets", secretsRouter)
+  .route("/:projectId/mcp-tokens", mcpTokensRouter)
   .get("/:projectId", zValidator("param", projectParamSchema), async (c) => {
     const user = requireUser(c);
 

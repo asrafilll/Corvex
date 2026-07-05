@@ -9,9 +9,10 @@ Done and pushed on `main`:
 - Foundations: theme tokens, `SECRETS_ENCRYPTION_KEY` config, `utils/secret-crypto.ts` (AES-256-GCM, tested), full Prisma schema + `corvex_domain` migration.
 - API modules: `customers/`, `projects/` (detail payload incl. paidTotal/outstanding), `tasks/` (nested CRUD + reorder). All mounted in `app.ts`, RPC `AppType` picks them up.
 - Session 1 done (2026-07-05): `milestones/`, `payments/`, `project-notes/` — nested CRUD, mounted in projects router, tests in module `router.test.ts` files, shared helpers in `src/test/helpers.ts`.
+- Session 2 done (2026-07-05): `secrets/` (encrypted create/update, POST reveal, 409 duplicate name via P2002 → `DuplicateSecretNameError`) + `mcp-tokens/` (raw `cvx_` token returned once on create, sha256 hash stored, revoke). Token generate/hash helpers in `src/utils/mcp-token.ts` for Session 5 reuse. No body-logging middleware exists in app.ts — confirmed.
 - Design locked: "Linear Dense" — `.claude/skills/corvex-design/SKILL.md` has the layout rules (three-pane detail, h-8 task rows, priority dots). Invoke that skill before any UI work.
 
-Not started: secrets/mcp-tokens API, all platform UI, MCP server.
+Not started: all platform UI, MCP server.
 
 Known debt (fold into the session that touches the area, don't do it standalone unless idle):
 
@@ -44,7 +45,7 @@ Mount all three in projects/router.ts via .route() like tasks. Tests in modules/
 
 Acceptance: `GET /projects/:id` detail payload already includes these collections — verify the new routes return the same shapes so RPC types stay coherent.
 
-## Session 2 — Secrets + MCP tokens API
+## Session 2 — Secrets + MCP tokens API — ✅ DONE
 
 Security-sensitive. Read ADR-0001 and ADR-0002 first; their rules are non-negotiable.
 

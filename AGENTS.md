@@ -33,7 +33,7 @@ pnpm db:generate         # prisma generate — ALWAYS after schema.prisma change
 
 ## Status (update this list when you ship a module)
 
-API modules done: customers, projects, tasks, milestones, payments, project-notes. Pending: secrets, mcp-tokens, platform UI, Phase 2 MCP server — session-by-session prompts in docs/roadmap.md. Cross-check `apps/api/src/modules/` against `schema.prisma` models if unsure.
+API modules done: customers, projects, tasks, milestones, payments, project-notes, secrets, mcp-tokens. Pending: platform UI, Phase 2 MCP server — session-by-session prompts in docs/roadmap.md. Cross-check `apps/api/src/modules/` against `schema.prisma` models if unsure.
 
 ## API module pattern (copy `modules/customers/` for flat resources, `modules/tasks/` for project-nested)
 
