@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "./app";
 
@@ -11,6 +12,11 @@ const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),
   findUnique: vi.fn(),
   getSession: vi.fn(),
+  projectCreate: vi.fn(),
+  projectDelete: vi.fn(),
+  projectFindMany: vi.fn(),
+  projectFindUnique: vi.fn(),
+  projectUpdate: vi.fn(),
   update: vi.fn(),
 }));
 
@@ -24,6 +30,7 @@ vi.mock("./modules/auth/auth", () => ({
 }));
 
 vi.mock("./utils/prisma", () => ({
+  Prisma,
   prisma: {
     customer: {
       create: mocks.customerCreate,
@@ -31,6 +38,13 @@ vi.mock("./utils/prisma", () => ({
       findMany: mocks.customerFindMany,
       findUnique: mocks.customerFindUnique,
       update: mocks.customerUpdate,
+    },
+    project: {
+      create: mocks.projectCreate,
+      delete: mocks.projectDelete,
+      findMany: mocks.projectFindMany,
+      findUnique: mocks.projectFindUnique,
+      update: mocks.projectUpdate,
     },
     user: {
       findMany: mocks.findMany,
@@ -53,6 +67,11 @@ describe("api app", () => {
     mocks.findMany.mockReset();
     mocks.findUnique.mockReset();
     mocks.getSession.mockReset();
+    mocks.projectCreate.mockReset();
+    mocks.projectDelete.mockReset();
+    mocks.projectFindMany.mockReset();
+    mocks.projectFindUnique.mockReset();
+    mocks.projectUpdate.mockReset();
     mocks.update.mockReset();
 
     mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
@@ -66,6 +85,13 @@ describe("api app", () => {
     mocks.findMany.mockResolvedValue([]);
     mocks.findUnique.mockResolvedValue(null);
     mocks.getSession.mockResolvedValue(null);
+    mocks.projectCreate.mockImplementation(({ data }) => Promise.resolve(createProject(data)));
+    mocks.projectDelete.mockResolvedValue(createProject());
+    mocks.projectFindMany.mockResolvedValue([]);
+    mocks.projectFindUnique.mockResolvedValue(null);
+    mocks.projectUpdate.mockImplementation(({ data, where }) =>
+      Promise.resolve(createProject({ id: where.id, ...data })),
+    );
     mocks.update.mockImplementation(({ data, where }) =>
       Promise.resolve({
         createdAt: baseDate,
@@ -299,6 +325,113 @@ describe("api app", () => {
     expect(mocks.customerDelete).toHaveBeenCalledWith({ where: { id: "customer-1" } });
   });
 
+  it("requires a session to list projects", async () => {
+    const response = await app.request("/projects");
+
+    await expect(response.json()).resolves.toEqual({ error: "unauthorized" });
+    expect(response.status).toBe(401);
+    expect(mocks.projectFindMany).not.toHaveBeenCalled();
+  });
+
+  it("lists projects with a status filter", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindMany.mockResolvedValue([createProject()]);
+
+    const response = await app.request("/projects?status=Active");
+
+    await expect(response.json()).resolves.toMatchObject({
+      projects: [
+        {
+          budgetAmount: "1200.5",
+          customer: { id: "customer-1", name: "Acme" },
+          id: "project-1",
+          name: "Website",
+          status: "Active",
+        },
+      ],
+    });
+    expect(response.status).toBe(200);
+    expect(mocks.projectFindMany.mock.calls[0]?.[0].where).toEqual({ status: "Active" });
+  });
+
+  it("creates a project", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+
+    const response = await app.request("/projects", {
+      body: JSON.stringify({
+        budgetAmount: "1200.50",
+        customerId: "customer-1",
+        name: "  Website  ",
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    expect(response.status).toBe(201);
+    expect(mocks.projectCreate.mock.calls[0]?.[0].data.name).toBe("Website");
+    expect(mocks.projectCreate.mock.calls[0]?.[0].data.budgetAmount.toString()).toBe("1200.5");
+  });
+
+  it("returns project detail with decimal totals and metadata-only secrets", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue(createProjectDetail());
+
+    const response = await app.request("/projects/project-1");
+
+    const body = await response.json();
+
+    expect(body).toMatchObject({
+      project: {
+        budgetAmount: "1200.5",
+        id: "project-1",
+        name: "Website",
+        outstanding: "700.25",
+        paidTotal: "500.25",
+        payments: [{ amount: "500.25", id: "payment-1" }],
+        secrets: [{ description: "CMS login", id: "secret-1", name: "WordPress" }],
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(JSON.stringify(body)).not.toContain("encryptedValue");
+  });
+
+  it("returns not_found for missing projects", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+
+    const response = await app.request("/projects/missing");
+
+    await expect(response.json()).resolves.toEqual({ error: "not_found" });
+    expect(response.status).toBe(404);
+  });
+
+  it("updates a project", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+
+    const response = await app.request("/projects/project-1", {
+      body: JSON.stringify({ status: "OnHold" }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.projectUpdate.mock.calls[0]?.[0]).toMatchObject({
+      data: { status: "OnHold" },
+      where: { id: "project-1" },
+    });
+  });
+
+  it("deletes a project", async () => {
+    mocks.getSession.mockResolvedValue(createAuthSession("user"));
+    mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+
+    const response = await app.request("/projects/project-1", { method: "DELETE" });
+
+    await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(response.status).toBe(200);
+    expect(mocks.projectDelete).toHaveBeenCalledWith({ where: { id: "project-1" } });
+  });
+
   it("requires a session to update profile", async () => {
     const response = await app.request("/profile", {
       body: JSON.stringify({ name: "Updated User" }),
@@ -480,6 +613,53 @@ function createCustomerDetail() {
     ...createCustomer(),
     _count: { projects: 0 },
     projects: [],
+  };
+}
+
+function createProject(input: Record<string, unknown> = {}) {
+  return {
+    budgetAmount: new Prisma.Decimal("1200.50"),
+    createdAt: baseDate,
+    currency: "USD",
+    customer: { id: "customer-1", name: "Acme" },
+    customerId: "customer-1",
+    deadline: baseDate,
+    description: null,
+    id: "project-1",
+    name: "Website",
+    startDate: null,
+    status: "Active",
+    updatedAt: baseDate,
+    ...input,
+  };
+}
+
+function createProjectDetail() {
+  return {
+    ...createProject(),
+    customer: createCustomer(),
+    mcpTokens: [
+      {
+        createdAt: baseDate,
+        id: "token-1",
+        lastUsedAt: null,
+        name: "Agent",
+        revoked: false,
+      },
+    ],
+    milestones: [],
+    notes: [],
+    payments: [
+      {
+        amount: new Prisma.Decimal("500.25"),
+        date: baseDate,
+        id: "payment-1",
+        note: null,
+        projectId: "project-1",
+      },
+    ],
+    secrets: [{ description: "CMS login", id: "secret-1", name: "WordPress" }],
+    tasks: [],
   };
 }
 

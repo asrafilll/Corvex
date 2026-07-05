@@ -5,6 +5,7 @@ import { auth } from "./modules/auth/auth";
 import { type AuthVariables, loadAuthSession } from "./modules/auth/middleware";
 import { customersRouter } from "./modules/customers/router";
 import { profileRouter } from "./modules/profile/router";
+import { projectsRouter } from "./modules/projects/router";
 import { usersRouter } from "./modules/users/router";
 
 export const app = new Hono<{ Variables: AuthVariables }>()
@@ -36,6 +37,7 @@ export const app = new Hono<{ Variables: AuthVariables }>()
   })
   .route("/customers", customersRouter)
   .route("/profile", profileRouter)
+  .route("/projects", projectsRouter)
   .route("/users", usersRouter);
 
 export type AppType = typeof app;
