@@ -8,9 +8,10 @@ Done and pushed on `main`:
 
 - Foundations: theme tokens, `SECRETS_ENCRYPTION_KEY` config, `utils/secret-crypto.ts` (AES-256-GCM, tested), full Prisma schema + `corvex_domain` migration.
 - API modules: `customers/`, `projects/` (detail payload incl. paidTotal/outstanding), `tasks/` (nested CRUD + reorder). All mounted in `app.ts`, RPC `AppType` picks them up.
+- Session 1 done (2026-07-05): `milestones/`, `payments/`, `project-notes/` — nested CRUD, mounted in projects router, tests in module `router.test.ts` files, shared helpers in `src/test/helpers.ts`.
 - Design locked: "Linear Dense" — `.claude/skills/corvex-design/SKILL.md` has the layout rules (three-pane detail, h-8 task rows, priority dots). Invoke that skill before any UI work.
 
-Not started: milestones/payments/project-notes/secrets/mcp-tokens API, all platform UI, MCP server.
+Not started: secrets/mcp-tokens API, all platform UI, MCP server.
 
 Known debt (fold into the session that touches the area, don't do it standalone unless idle):
 
@@ -25,7 +26,7 @@ Known debt (fold into the session that touches the area, don't do it standalone 
 
 ---
 
-## Session 1 — Milestones, Payments, Project-notes API
+## Session 1 — Milestones, Payments, Project-notes API — ✅ DONE
 
 Three near-identical nested CRUD modules. No schema changes.
 
