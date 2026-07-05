@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { i18n } from "./i18n";
+import { i18n } from "./i18n-config";
 
 describe("admin i18n", () => {
   it("loads base translations", () => {

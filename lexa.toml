@@ -1,0 +1,3 @@
+[audit.rules]
+"dependency.hotspot" = "off"
+"symbol.large" = "off"

@@ -26,3 +26,7 @@ export function requireAdmin(c: Context<{ Variables: AuthVariables }>) {
 
   return user;
 }
+
+export function requireUser(c: Context<{ Variables: AuthVariables }>) {
+  return c.get("user");
+}

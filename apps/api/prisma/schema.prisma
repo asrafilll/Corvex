@@ -60,3 +60,125 @@ model Verification {
   createdAt  DateTime? @default(now())
   updatedAt  DateTime? @updatedAt
 }
+
+enum ProjectStatus {
+  Lead
+  Active
+  OnHold
+  Completed
+  Cancelled
+}
+
+enum TaskStatus {
+  Todo
+  InProgress
+  Done
+  Cancelled
+}
+
+enum TaskPriority {
+  None
+  Low
+  Medium
+  High
+  Urgent
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  status       ProjectStatus @default(Lead)
+  startDate    DateTime?
+  deadline     DateTime?
+  budgetAmount Decimal?      @db.Decimal(14, 2)
+  currency     String        @default("USD")
+  customerId   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tasks        Task[]
+  milestones   Milestone[]
+  payments     Payment[]
+  notes        Note[]
+  secrets      Secret[]
+  mcpTokens    McpToken[]
+
+  @@index([status])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(Todo)
+  priority    TaskPriority @default(None)
+  dueDate     DateTime?
+  order       Int
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status, order])
+}
+
+model Milestone {
+  id        String   @id @default(cuid())
+  name      String
+  date      DateTime
+  done      Boolean  @default(false)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  date      DateTime
+  amount    Decimal  @db.Decimal(14, 2)
+  note      String?
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  projectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Secret {
+  id             String  @id @default(cuid())
+  name           String
+  description    String?
+  encryptedValue String
+  projectId      String
+  project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+}
+
+model McpToken {
+  id         String    @id @default(cuid())
+  name       String
+  tokenHash  String    @unique
+  projectId  String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revoked    Boolean   @default(false)
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}

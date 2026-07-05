@@ -10,6 +10,8 @@ const defaultDatabaseUrl =
   "postgresql://postgres:postgres@localhost:15432/monorepo_template?schema=public";
 const defaultBetterAuthUrl = "http://localhost:8000";
 const defaultBetterAuthSecret = "dev-change-me";
+const defaultSecretsEncryptionKey =
+  "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 const productionSecretMinimumLength = 32;
 
 const runtimeEnvSchema = z.enum(["development", "test", "production"]).default("development");
@@ -51,6 +53,7 @@ const serverEnvSchema = z
     ENABLE_TELEMETRY: booleanSchema.default(false),
     LOG_LEVEL: logLevelSchema,
     REDIS_URL: z.string().trim().min(1).default("redis://localhost:16379"),
+    SECRETS_ENCRYPTION_KEY: z.string().trim().min(1).default(defaultSecretsEncryptionKey),
     TELEMETRY_API_KEY: optionalStringSchema,
     TELEMETRY_API_KEY_HEADER: z.string().trim().min(1).default("authorization"),
     TELEMETRY_EXPORTER: telemetryExporterSchema,
@@ -77,6 +80,22 @@ const serverEnvSchema = z
         code: "custom",
         message: `BETTER_AUTH_SECRET must be at least ${productionSecretMinimumLength} characters in production.`,
         path: ["BETTER_AUTH_SECRET"],
+      });
+    }
+
+    if (env.SECRETS_ENCRYPTION_KEY === defaultSecretsEncryptionKey) {
+      context.addIssue({
+        code: "custom",
+        message: "SECRETS_ENCRYPTION_KEY must be changed in production.",
+        path: ["SECRETS_ENCRYPTION_KEY"],
+      });
+    }
+
+    if (!is32ByteKey(env.SECRETS_ENCRYPTION_KEY)) {
+      context.addIssue({
+        code: "custom",
+        message: "SECRETS_ENCRYPTION_KEY must be 32 bytes encoded as hex or base64.",
+        path: ["SECRETS_ENCRYPTION_KEY"],
       });
     }
   });
@@ -121,6 +140,10 @@ export const redisConfig = {
   url: env.REDIS_URL,
 } as const;
 
+export const secretsConfig = {
+  encryptionKey: env.SECRETS_ENCRYPTION_KEY,
+} as const;
+
 export const loggerConfig = {
   environment: env.NODE_ENV,
   level: env.LOG_LEVEL,
@@ -155,4 +178,8 @@ function parseCsv(value: string) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function is32ByteKey(value: string) {
+  return Buffer.from(value, "hex").length === 32 || Buffer.from(value, "base64").length === 32;
 }

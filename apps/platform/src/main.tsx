@@ -7,7 +7,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@repo/ui/styles.css";
 import "./styles.css";
-import { i18n } from "./i18n";
+import { i18n } from "./i18n-config";
 import { routeTree } from "./routeTree.gen";
 
 const rootElement = document.getElementById("root");

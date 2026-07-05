@@ -21,6 +21,7 @@
       "@repo/api": ["apps/api/src/app.ts"],
       "@repo/api-client": ["packages/api-client/src/index.ts"],
       "@repo/config": ["packages/config/src/index.ts"],
+      "@repo/i18n": ["packages/i18n/src/index.tsx"],
       "@repo/logger": ["packages/logger/src/index.ts"],
       "@repo/storage": ["packages/storage/src/index.ts"],
       "@repo/telemetry": ["packages/telemetry/src/index.ts"],
