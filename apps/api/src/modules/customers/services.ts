@@ -1,6 +1,5 @@
 import { prisma } from "../../utils/prisma";
 import type { CreateCustomerInput, UpdateCustomerInput } from "./schema";
-import type { CustomerDetail, CustomerListItem } from "./types";
 
 const customerSelect = {
   id: true,
@@ -13,7 +12,7 @@ const customerSelect = {
   updatedAt: true,
 } as const;
 
-export async function listCustomers(): Promise<{ customers: CustomerListItem[] }> {
+export async function listCustomers() {
   const customers = await prisma.customer.findMany({
     orderBy: [{ name: "asc" }, { id: "asc" }],
     select: {
@@ -30,7 +29,7 @@ export async function listCustomers(): Promise<{ customers: CustomerListItem[] }
   };
 }
 
-export async function getCustomer(customerId: string): Promise<CustomerDetail | null> {
+export async function getCustomer(customerId: string) {
   const customer = await prisma.customer.findUnique({
     where: { id: customerId },
     select: {
