@@ -7,6 +7,8 @@ description: Corvex design system — Linear-like density, shadcn/ui from @repo/
 
 Linear-inspired: dense, quiet, keyboard-fast. Neutral surfaces; purple only where attention belongs.
 
+Style locked 2026-07-05: user picked "Variant A — Linear Dense" from the 5-way `/prototype-styles` bake-off (dark three-pane, compact rows, violet accent) over document / dashboard / terminal / soft-studio directions. Layout rules below encode that choice.
+
 ## Theme
 
 Tokens live in `packages/ui/src/styles.css` (`:root` + `.dark`). Canonical values from shadcn preset `b5x0FmNlI` ("base-mira") are in [THEME.md](THEME.md) — apply/verify against that file, never invent color values. Key facts:
@@ -27,7 +29,11 @@ Tokens live in `packages/ui/src/styles.css` (`:root` + `.dark`). Canonical value
 - Body text `text-sm`; secondary metadata `text-xs text-muted-foreground`. Page titles `text-lg font-semibold` — nothing larger inside the app shell.
 - Pages: existing sidebar shell (`modules/app-shell`). Page = sticky header row (title left, actions right, `h-12 border-b px-4`) + content `px-4 py-4`. Full-width; no centered max-width containers for list/detail views.
 - Tables/lists: compact rows (`py-2`), hover `hover:bg-muted/50`, whole row clickable for navigation.
-- Cards on detail pages: `gap-4` grid, one `Card` per domain section (customer, budget, milestones, …), `CardTitle` = `text-sm font-medium`.
+- Project detail = three-pane: app sidebar | main content (`min-w-0 flex-1`) | right properties rail (`w-64 border-l px-4 py-4 text-xs`). Rail = label/value metadata pairs (label `text-muted-foreground`, value beneath) — customer, budget, paid `text-emerald-600 dark:text-emerald-400`, outstanding `text-amber-600 dark:text-amber-400` — then compact milestone checklist and masked secret list. No card grid on project detail; the rail replaces it.
+- Detail header = breadcrumb row (`h-12 border-b px-5`): parent crumb muted / name / status pill, due date pushed right.
+- Section headers (task groups, rail sections): `text-[11px] font-semibold uppercase tracking-wider text-muted-foreground` + muted count.
+- Task lists: flat dense rows, never cards. Grouped by status (In Progress → Todo → Done). Row = `h-8 items-center gap-2.5` in a `divide-y border-y` list: priority dot left, title, due date right `text-xs text-muted-foreground`. Done rows `text-muted-foreground line-through`.
+- Cards elsewhere (dashboard, settings): `gap-4` grid, one `Card` per domain section, `CardTitle` = `text-sm font-medium`.
 - Create = `Dialog` with short form; edit = inline where cheap (status `Select`, checkbox toggles), dialog otherwise. Forms: `field.tsx` + zod, labels above inputs, one column.
 
 ## Color discipline
@@ -46,7 +52,8 @@ Tokens live in `packages/ui/src/styles.css` (`:root` + `.dark`). Canonical value
 | Priority High | `text-orange-600 dark:text-orange-400` |
 | Priority Medium/Low/None | `text-muted-foreground` |
 
-- Status rendered as `Badge` variant `outline` with a colored dot (`size-1.5 rounded-full`), not filled colored badges.
+- Status rendered as `Badge` variant `outline` with a colored dot (`size-1.5 rounded-full`), not filled colored badges. Exception — project status pill in the detail header uses a subtle tint: `border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300` (swap hue per the status table).
+- Task priority in rows = leading dot only (`size-2 rounded-full`), no text label: Urgent `bg-red-500`, High `bg-orange-400`, Medium `bg-yellow-400`, Low `bg-sky-400`, None `bg-muted-foreground/40`.
 - Money: `tabular-nums`; outstanding > 0 neutral, overdue/negative `text-red-600 dark:text-red-400`.
 
 ## Voice
