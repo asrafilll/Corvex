@@ -21,14 +21,7 @@ import {
 import { toast } from "@repo/ui/components/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
-import {
-  FolderKanbanIcon,
-  LayoutDashboardIcon,
-  LogOutIcon,
-  MonitorIcon,
-  UserRoundIcon,
-  UsersIcon,
-} from "lucide-react";
+import { LogOutIcon, MonitorIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { meQueryOptions, useLogoutMutation } from "../auth/hooks/use-auth";
 import { HeaderControls } from "./header-controls";
@@ -59,15 +52,15 @@ export function PlatformAppShell({
   }
 
   const navItems = [
-    { icon: LayoutDashboardIcon, label: t("nav.dashboard"), to: "/" },
-    { icon: FolderKanbanIcon, label: t("nav.projects"), to: "/projects" },
-    { icon: UsersIcon, label: t("nav.customers"), to: "/customers" },
-    { icon: UserRoundIcon, label: t("nav.profile"), to: "/profile" },
+    { label: t("nav.dashboard"), to: "/" },
+    { label: t("nav.projects"), to: "/projects" },
+    { label: t("nav.customers"), to: "/customers" },
+    { label: t("nav.profile"), to: "/profile" },
   ] as const;
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" variant="inset">
+      <Sidebar collapsible="offcanvas" variant="inset">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -101,8 +94,7 @@ export function PlatformAppShell({
                       tooltip={item.label}
                     >
                       <Link to={item.to}>
-                        <item.icon className="size-4 shrink-0" />
-                        <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                        <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
