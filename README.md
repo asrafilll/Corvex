@@ -153,3 +153,31 @@ VITE_API_URL="https://api.example.com"
 BETTER_AUTH_URL="https://api.example.com"
 CLIENT_ORIGINS="https://app.example.com,https://admin.example.com"
 ```
+
+## Corvex MCP server
+
+Each project can mint **project-scoped** MCP tokens (project detail page → MCP tokens). A token authenticates a coding agent against exactly one project: tools never accept a project id, so a leaked or hijacked token can only reach that project's tasks, notes, and metadata. Money never crosses MCP — `get_project` omits budget and payments, and `list_secrets` returns names and descriptions only, never values (see `docs/adr/0002`).
+
+The endpoint is stateless Streamable HTTP at `POST /mcp`, authenticated with a `Bearer cvx_…` token (no cookies). Point an MCP client at it via `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "corvex": {
+      "type": "http",
+      "url": "http://localhost:8000/mcp",
+      "headers": { "Authorization": "Bearer cvx_your_token_here" }
+    }
+  }
+}
+```
+
+Tools: `get_project`, `list_tasks`, `get_task`, `create_task`, `update_task`, `list_notes`, `get_note`, `add_note`, `list_milestones`, `list_secrets`.
+
+Inspect it locally with the MCP Inspector (create a token in the UI first):
+
+```sh
+npx @modelcontextprotocol/inspector
+# Transport: Streamable HTTP · URL: http://localhost:8000/mcp
+# Auth: add header  Authorization: Bearer cvx_your_token_here
+```

@@ -18,8 +18,10 @@
   },
   "dependencies": {
     "@better-auth/prisma-adapter": "^1.6.20",
+    "@hono/mcp": "0.3.0",
     "@hono/node-server": "^2.0.5",
     "@hono/zod-validator": "^0.8.0",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "7.8.0",
     "@repo/config": "workspace:*",

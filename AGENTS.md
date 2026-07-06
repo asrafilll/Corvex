@@ -33,7 +33,9 @@ pnpm db:generate         # prisma generate — ALWAYS after schema.prisma change
 
 ## Status (update this list when you ship a module)
 
-API modules done: customers, projects, tasks, milestones, payments, project-notes, secrets, mcp-tokens. Platform UI done: shell nav, projects list, customers list/detail, full three-pane project detail (tasks with reorder/status, markdown notes, payments/milestones/secrets/MCP-tokens rail). Pending: Phase 2 MCP server (roadmap Session 5), closeout (Session 6) — session-by-session prompts in docs/roadmap.md. Cross-check `apps/api/src/modules/` against `schema.prisma` models if unsure.
+API modules done: customers, projects, tasks, milestones, payments, project-notes, secrets, mcp-tokens, mcp (Phase 2 server). Platform UI done: shell nav, projects list, customers list/detail, full three-pane project detail (tasks with reorder/status, markdown notes, payments/milestones/secrets/MCP-tokens rail). Pending: closeout (Session 6) — session-by-session prompts in docs/roadmap.md. Cross-check `apps/api/src/modules/` against `schema.prisma` models if unsure.
+
+MCP server (`modules/mcp/`): stateless Streamable HTTP at `POST /mcp` via `@hono/mcp` + `@modelcontextprotocol/sdk`. `mcpTokenAuth` (Bearer `cvx_` → sha256 → `mcpToken.findUnique`, 401 missing/revoked, throttled `lastUsedAt`) sets `mcpProjectId`; `buildMcpServer(projectId)` closes over the project so no tool accepts a projectId. Dates cross as ISO strings (z.date has no JSON Schema). Transport isolated in `transport.ts`. ADR-0002 rules: `get_project` omits money, `list_secrets` omits values.
 
 ## API module pattern (copy `modules/customers/` for flat resources, `modules/tasks/` for project-nested)
 
