@@ -21,7 +21,7 @@ import {
 import { toast } from "@repo/ui/components/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
-import { LogOutIcon, MonitorIcon } from "lucide-react";
+import { LogOutIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { meQueryOptions, useLogoutMutation } from "../auth/hooks/use-auth";
 import { HeaderControls } from "./header-controls";
@@ -67,7 +67,7 @@ export function PlatformAppShell({
               <SidebarMenuButton size="lg" asChild tooltip={t("nav.brand")}>
                 <Link to="/">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
-                    <MonitorIcon className="size-4" />
+                    {t("nav.brand").charAt(0)}
                   </span>
                   <span className="font-semibold group-data-[collapsible=icon]:hidden">
                     {t("nav.brand")}
@@ -92,6 +92,7 @@ export function PlatformAppShell({
                           : location.pathname.startsWith(item.to)
                       }
                       tooltip={item.label}
+                      className="data-[active=true]:bg-transparent data-[active=true]:font-medium data-[active=true]:text-primary"
                     >
                       <Link to={item.to}>
                         <span>{item.label}</span>
