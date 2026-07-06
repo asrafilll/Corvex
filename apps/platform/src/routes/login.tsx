@@ -7,7 +7,6 @@ import { toast } from "@repo/ui/components/sonner";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { HeaderControls } from "../modules/app-shell/header-controls";
 import { useLoginMutation } from "../modules/auth/hooks/use-auth";
 
 export const Route = createFileRoute("/login")({
@@ -35,11 +34,10 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
-      <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
+      <header className="mx-auto flex h-16 w-full max-w-6xl items-center px-6">
         <Link to="/" className="font-semibold">
           {t("nav.brand")}
         </Link>
-        <HeaderControls />
       </header>
       <main className="flex flex-1 items-center justify-center px-6 py-12">
         <Card className="w-full max-w-md">

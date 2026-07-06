@@ -14,9 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarRail,
   SidebarSeparator,
-  SidebarTrigger,
 } from "@repo/ui/components/sidebar";
 import { toast } from "@repo/ui/components/sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -24,7 +22,6 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { LogOutIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { meQueryOptions, useLogoutMutation } from "../auth/hooks/use-auth";
-import { HeaderControls } from "./header-controls";
 
 export function PlatformAppShell({
   children,
@@ -60,7 +57,7 @@ export function PlatformAppShell({
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="offcanvas" variant="inset">
+      <Sidebar collapsible="none" className="sticky top-0 h-svh">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -92,7 +89,7 @@ export function PlatformAppShell({
                           : location.pathname.startsWith(item.to)
                       }
                       tooltip={item.label}
-                      className="data-[active=true]:bg-transparent data-[active=true]:font-medium data-[active=true]:text-primary"
+                      className="data-[active=true]:bg-transparent data-[active=true]:font-medium data-[active=true]:text-violet-600 dark:data-[active=true]:text-violet-400"
                     >
                       <Link to={item.to}>
                         <span>{item.label}</span>
@@ -141,16 +138,8 @@ export function PlatformAppShell({
             </span>
           </Button>
         </SidebarFooter>
-        <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger />
-            <span className="text-sm font-medium text-muted-foreground">{t("nav.brand")}</span>
-          </div>
-          <HeaderControls />
-        </header>
         <div
           className={
             fullWidth
