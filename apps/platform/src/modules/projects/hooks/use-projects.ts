@@ -11,6 +11,15 @@ import {
 
 export const projectsQueryKey = ["projects"] as const;
 
+// Invalidating the root key refreshes both the list and every ["projects", projectId] detail.
+export function useInvalidateProjects() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: projectsQueryKey });
+  };
+}
+
 export function projectsQueryOptions(status?: ProjectStatus) {
   return queryOptions({
     queryKey: [...projectsQueryKey, "list", status ?? "all"],

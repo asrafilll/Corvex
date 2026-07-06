@@ -12,7 +12,9 @@ Done and pushed on `main`:
 - Session 2 done (2026-07-05): `secrets/` (encrypted create/update, POST reveal, 409 duplicate name via P2002 → `DuplicateSecretNameError`) + `mcp-tokens/` (raw `cvx_` token returned once on create, sha256 hash stored, revoke). Token generate/hash helpers in `src/utils/mcp-token.ts` for Session 5 reuse. No body-logging middleware exists in app.ts — confirmed.
 - Design locked: "Linear Dense" — `.claude/skills/corvex-design/SKILL.md` has the layout rules (three-pane detail, h-8 task rows, priority dots). Invoke that skill before any UI work.
 
-Not started: project detail screen (Session 4), MCP server.
+Not started: MCP server (Session 5), closeout (Session 6).
+
+Session 4 done (2026-07-06): three-pane `projects.$projectId` — header with inline status Select (tinted pill per status) + deadline; main column has grouped dense task rows (status dot dropdown, priority dot, up/down reorder via POST /reorder, inline add, delete) then markdown notes (react-markdown + remark-gfm, styled via Tailwind child selectors since no typography plugin) with add/edit dialog; right rail (w-64) has customer link, budget total/paid(emerald)/outstanding(amber), inline-add payments, milestone checklist with done toggle, masked secrets (reveal → POST /reveal, copy, auto-rehide 30s, delete confirm) and MCP tokens (create shows raw cvx_ once with copy + warning, revoke confirm). Per-resource services/hooks in modules/{tasks,project-notes,payments,milestones,secrets,mcp-tokens}/; all mutations invalidate the root ["projects"] key. Verified live end-to-end (task, payment→budget math, secret reveal round-trip proving key wiring, token create-once, markdown note) in light + dark.
 
 Session 3 done (2026-07-05): react-markdown+remark-gfm installed; shell nav (Projects/Customers, `fullWidth` prop on `PlatformAppShell` for dense pages); hooks in `modules/{projects,customers}/hooks/` over shared `lib/api.ts` client (`InferRequestType` re-exported from `@repo/api-client`); `projects.index` (status tabs, table, create dialog), `customers.index` + `customers.$customerId` (create/edit dialogs), minimal `projects.$projectId` placeholder for Session 4. Verified live in light+dark. Local dev note: repo `.env` (gitignored) points at dedicated `corvex` DB + API_PORT 8010 because the shared `monorepo_template` DB/port 8000 are occupied by another project; vite `envDir` is repo root.
 
@@ -80,7 +82,7 @@ Invoke the corvex-design skill. Read AGENTS.md (frontend rules) and docs/roadmap
 Verify both light and .dark mode by running the app and clicking through. Finish with typecheck, test, check:fix, commit, push.
 ```
 
-## Session 4 — Platform UI: project detail (the flagship screen)
+## Session 4 — Platform UI: project detail (the flagship screen) — ✅ DONE
 
 Prompt:
 

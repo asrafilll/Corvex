@@ -28,6 +28,8 @@ export async function listProjects(status?: ProjectStatus) {
   return (await response.json()).projects;
 }
 
+export type ProjectDetail = Awaited<ReturnType<typeof getProject>>;
+
 export async function getProject(projectId: string) {
   const response = await apiClient.projects[":projectId"].$get({
     param: { projectId },
