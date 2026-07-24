@@ -13,9 +13,8 @@ export function createApiClient(baseUrl: string) {
 
 export type ApiClient = ReturnType<typeof createApiClient>;
 
-export type UpdateProfileInput = {
-  image?: string | null;
-  name: string;
+export type UnlockInput = {
+  password: string;
 };
 
 export class UnauthorizedApiError extends Error {
@@ -25,36 +24,53 @@ export class UnauthorizedApiError extends Error {
   }
 }
 
-export async function fetchSessionUser(client: ApiClient) {
-  const response = await client.session.$get();
+export class AppUnlockApiError extends Error {
+  constructor(public readonly code: "incorrect_password" | "too_many_attempts") {
+    super(code);
+    this.name = "AppUnlockApiError";
+  }
+}
+
+export async function fetchAppSession(client: ApiClient) {
+  const response = await client.auth.session.$get();
 
   if (response.status === 401) {
     throw new UnauthorizedApiError();
   }
 
   if (!response.ok) {
-    throw new Error("Failed to load current user.");
+    throw new Error("Failed to load the app session.");
   }
 
-  const data = await response.json();
-
-  return data.user;
+  return response.json();
 }
 
-export async function updateCurrentUserProfile(client: ApiClient, input: UpdateProfileInput) {
-  const response = await client.profile.$patch({
+export async function unlockApp(client: ApiClient, input: UnlockInput) {
+  const response = await client.auth.unlock.$post({
     json: input,
   });
 
   if (response.status === 401) {
-    throw new UnauthorizedApiError();
+    throw new AppUnlockApiError("incorrect_password");
+  }
+
+  if (response.status === 429) {
+    throw new AppUnlockApiError("too_many_attempts");
   }
 
   if (!response.ok) {
-    throw new Error("Failed to update profile.");
+    throw new Error("Failed to unlock Corvex.");
   }
 
-  const data = await response.json();
+  return response.json();
+}
 
-  return data.user;
+export async function lockApp(client: ApiClient) {
+  const response = await client.auth.lock.$post();
+
+  if (!response.ok) {
+    throw new Error("Failed to lock Corvex.");
+  }
+
+  return response.json();
 }

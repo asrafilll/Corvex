@@ -1,32 +1,29 @@
 import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../../app";
+import { createTransactionMock } from "../../test/helpers";
 import { decryptSecret, encryptSecret } from "../../utils/secret-crypto";
-import { createAuthSession } from "../../test/helpers";
 
 const mocks = vi.hoisted(() => ({
-  authHandler: vi.fn(),
-  getSession: vi.fn(),
+  readAppSession: vi.fn(),
   projectFindUnique: vi.fn(),
   secretCreate: vi.fn(),
   secretDelete: vi.fn(),
   secretFindFirst: vi.fn(),
   secretFindMany: vi.fn(),
   secretUpdate: vi.fn(),
+  activityCreate: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("../auth/auth", () => ({
-  auth: {
-    api: {
-      getSession: mocks.getSession,
-    },
-    handler: mocks.authHandler,
-  },
+  readAppSession: mocks.readAppSession,
 }));
 
 vi.mock("../../utils/prisma", () => ({
   Prisma,
   prisma: {
+    activity: { create: mocks.activityCreate },
     project: {
       findUnique: mocks.projectFindUnique,
     },
@@ -37,6 +34,7 @@ vi.mock("../../utils/prisma", () => ({
       findMany: mocks.secretFindMany,
       update: mocks.secretUpdate,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -46,8 +44,7 @@ describe("secrets router", () => {
       mock.mockReset();
     }
 
-    mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
-    mocks.getSession.mockResolvedValue(createAuthSession());
+    mocks.readAppSession.mockResolvedValue(true);
     mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
     mocks.secretCreate.mockImplementation(({ data }) =>
       Promise.resolve({ id: "secret-1", name: data.name, description: data.description ?? null }),
@@ -62,10 +59,24 @@ describe("secrets router", () => {
         description: data.description ?? null,
       }),
     );
+    mocks.activityCreate.mockImplementation(({ data }) =>
+      Promise.resolve({ id: "activity-1", ...data }),
+    );
+    mocks.transaction.mockImplementation(
+      createTransactionMock({
+        activity: { create: mocks.activityCreate },
+        secret: {
+          create: mocks.secretCreate,
+          delete: mocks.secretDelete,
+          findFirst: mocks.secretFindFirst,
+          update: mocks.secretUpdate,
+        },
+      }),
+    );
   });
 
   it("returns unauthorized without a session", async () => {
-    mocks.getSession.mockResolvedValue(null);
+    mocks.readAppSession.mockResolvedValue(null);
 
     const response = await app.request("/projects/project-1/secrets");
 
@@ -122,6 +133,9 @@ describe("secrets router", () => {
       name: true,
       description: true,
     });
+    const activityData = JSON.stringify(mocks.activityCreate.mock.calls[0]?.[0].data);
+    expect(activityData).not.toContain("hunter2-plaintext");
+    expect(activityData).not.toContain("encryptedValue");
   });
 
   it("returns conflict for a duplicate name in the same project", async () => {
@@ -158,6 +172,7 @@ describe("secrets router", () => {
   it("reveals a secret value round-tripping through encryption", async () => {
     mocks.secretFindFirst.mockResolvedValue({
       id: "secret-1",
+      name: "Staging SSH",
       encryptedValue: encryptSecret("hunter2-plaintext"),
     });
 
@@ -169,7 +184,7 @@ describe("secrets router", () => {
     expect(response.status).toBe(200);
     expect(mocks.secretFindFirst).toHaveBeenCalledWith({
       where: { id: "secret-1", projectId: "project-1" },
-      select: { id: true, encryptedValue: true },
+      select: { id: true, name: true, encryptedValue: true },
     });
   });
 
@@ -230,6 +245,9 @@ describe("secrets router", () => {
 
     await expect(response.json()).resolves.toEqual({ ok: true });
     expect(response.status).toBe(200);
-    expect(mocks.secretDelete).toHaveBeenCalledWith({ where: { id: "secret-1" } });
+    expect(mocks.secretDelete).toHaveBeenCalledWith({
+      where: { id: "secret-1" },
+      select: { id: true, name: true, description: true },
+    });
   });
 });

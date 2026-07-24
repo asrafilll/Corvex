@@ -9,9 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PrototypeStylesRouteImport } from './routes/prototype-styles'
-import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
@@ -19,19 +17,9 @@ import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as CustomersCustomerIdRouteImport } from './routes/customers.$customerId'
 
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PrototypeStylesRoute = PrototypeStylesRouteImport.update({
   id: '/prototype-styles',
   path: '/prototype-styles',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -68,9 +56,7 @@ const CustomersCustomerIdRoute = CustomersCustomerIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/profile': typeof ProfileRoute
   '/prototype-styles': typeof PrototypeStylesRoute
-  '/register': typeof RegisterRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/customers/': typeof CustomersIndexRoute
@@ -79,9 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/profile': typeof ProfileRoute
   '/prototype-styles': typeof PrototypeStylesRoute
-  '/register': typeof RegisterRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/customers': typeof CustomersIndexRoute
@@ -91,9 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/profile': typeof ProfileRoute
   '/prototype-styles': typeof PrototypeStylesRoute
-  '/register': typeof RegisterRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/customers/': typeof CustomersIndexRoute
@@ -104,9 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/profile'
     | '/prototype-styles'
-    | '/register'
     | '/customers/$customerId'
     | '/projects/$projectId'
     | '/customers/'
@@ -115,9 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/profile'
     | '/prototype-styles'
-    | '/register'
     | '/customers/$customerId'
     | '/projects/$projectId'
     | '/customers'
@@ -126,9 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
-    | '/profile'
     | '/prototype-styles'
-    | '/register'
     | '/customers/$customerId'
     | '/projects/$projectId'
     | '/customers/'
@@ -138,9 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
-  ProfileRoute: typeof ProfileRoute
   PrototypeStylesRoute: typeof PrototypeStylesRoute
-  RegisterRoute: typeof RegisterRoute
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -149,25 +123,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/prototype-styles': {
       id: '/prototype-styles'
       path: '/prototype-styles'
       fullPath: '/prototype-styles'
       preLoaderRoute: typeof PrototypeStylesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -218,9 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
-  ProfileRoute: ProfileRoute,
   PrototypeStylesRoute: PrototypeStylesRoute,
-  RegisterRoute: RegisterRoute,
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   CustomersIndexRoute: CustomersIndexRoute,

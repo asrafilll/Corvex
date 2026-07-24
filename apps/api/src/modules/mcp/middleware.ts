@@ -1,9 +1,12 @@
 import type { Context, Next } from "hono";
 import { hashMcpToken, mcpTokenPrefix } from "../../utils/mcp-token";
 import { prisma } from "../../utils/prisma";
-import type { AuthVariables } from "../auth/middleware";
 
-export type McpVariables = { mcpProjectId: string };
+export type McpVariables = {
+  mcpProjectId: string;
+  mcpTokenId: string;
+  mcpTokenName: string;
+};
 
 // Only refresh lastUsedAt when it is at least this stale, so a chatty agent
 // does not write to the row on every tool call.
@@ -11,10 +14,7 @@ const lastUsedThrottleMs = 60_000;
 
 // Bearer-only, independent of cookies: the token alone determines the project
 // (ADR-0002). A leaked or hijacked token can reach exactly one project.
-export async function mcpTokenAuth(
-  c: Context<{ Variables: AuthVariables & McpVariables }>,
-  next: Next,
-) {
+export async function mcpTokenAuth(c: Context<{ Variables: McpVariables }>, next: Next) {
   const header = c.req.header("Authorization");
   const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : null;
 
@@ -24,7 +24,7 @@ export async function mcpTokenAuth(
 
   const record = await prisma.mcpToken.findUnique({
     where: { tokenHash: hashMcpToken(token) },
-    select: { id: true, projectId: true, revoked: true, lastUsedAt: true },
+    select: { id: true, name: true, projectId: true, revoked: true, lastUsedAt: true },
   });
 
   if (!record || record.revoked) {
@@ -40,6 +40,8 @@ export async function mcpTokenAuth(
   }
 
   c.set("mcpProjectId", record.projectId);
+  c.set("mcpTokenId", record.id);
+  c.set("mcpTokenName", record.name);
 
   await next();
 }

@@ -1,31 +1,28 @@
 import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../../app";
-import { baseDate, createAuthSession } from "../../test/helpers";
+import { baseDate, createTransactionMock } from "../../test/helpers";
 
 const mocks = vi.hoisted(() => ({
-  authHandler: vi.fn(),
-  getSession: vi.fn(),
+  readAppSession: vi.fn(),
   noteCreate: vi.fn(),
   noteDelete: vi.fn(),
   noteFindFirst: vi.fn(),
   noteFindMany: vi.fn(),
   noteUpdate: vi.fn(),
   projectFindUnique: vi.fn(),
+  activityCreate: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("../auth/auth", () => ({
-  auth: {
-    api: {
-      getSession: mocks.getSession,
-    },
-    handler: mocks.authHandler,
-  },
+  readAppSession: mocks.readAppSession,
 }));
 
 vi.mock("../../utils/prisma", () => ({
   Prisma,
   prisma: {
+    activity: { create: mocks.activityCreate },
     note: {
       create: mocks.noteCreate,
       delete: mocks.noteDelete,
@@ -36,6 +33,7 @@ vi.mock("../../utils/prisma", () => ({
     project: {
       findUnique: mocks.projectFindUnique,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -45,8 +43,7 @@ describe("project notes router", () => {
       mock.mockReset();
     }
 
-    mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
-    mocks.getSession.mockResolvedValue(createAuthSession());
+    mocks.readAppSession.mockResolvedValue(true);
     mocks.noteCreate.mockImplementation(({ data }) => Promise.resolve(createNote(data)));
     mocks.noteDelete.mockResolvedValue(createNote());
     mocks.noteFindFirst.mockResolvedValue(null);
@@ -55,10 +52,23 @@ describe("project notes router", () => {
       Promise.resolve(createNote({ id: where.id, ...data })),
     );
     mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.activityCreate.mockImplementation(({ data }) =>
+      Promise.resolve({ id: "activity-1", ...data }),
+    );
+    mocks.transaction.mockImplementation(
+      createTransactionMock({
+        activity: { create: mocks.activityCreate },
+        note: {
+          create: mocks.noteCreate,
+          delete: mocks.noteDelete,
+          update: mocks.noteUpdate,
+        },
+      }),
+    );
   });
 
   it("returns unauthorized without a session", async () => {
-    mocks.getSession.mockResolvedValue(null);
+    mocks.readAppSession.mockResolvedValue(null);
 
     const response = await app.request("/projects/project-1/notes");
 

@@ -2,47 +2,53 @@ import { describe, expect, it } from "vitest";
 import { parseServerEnv } from "./index";
 
 const productionEnv = {
-  BETTER_AUTH_URL: "http://localhost:8000",
-  CLIENT_ORIGINS: "http://localhost:3000,http://localhost:4000",
-  DATABASE_URL: "postgresql://postgres:postgres@localhost:15432/monorepo_template?schema=public",
+  APP_PASSWORD_HASH:
+    "scrypt$cHJvZHVjdGlvbi1zYWx0LTE$uEYmT-V0oUoyO2f3nVGfM1-VJNXR6qExGEuaqMmz8XSlG5Xrd6mruoR-a4f8qwIBY1cufTfhqjeQ-CKYWUxW4w",
+  APP_SESSION_SECRET: "a-production-session-secret-32-chars",
+  CLIENT_ORIGINS: "http://localhost:3000",
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:15432/corvex?schema=public",
   NODE_ENV: "production",
   REDIS_URL: "redis://localhost:16379",
   SECRETS_ENCRYPTION_KEY: "1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100",
 } satisfies NodeJS.ProcessEnv;
 
 describe("server environment config", () => {
-  it("rejects the default auth secret in production", () => {
+  it("rejects the default app password hash in production", () => {
     expect(() =>
       parseServerEnv({
         ...productionEnv,
-        BETTER_AUTH_SECRET: "dev-change-me",
+        APP_PASSWORD_HASH:
+          "scrypt$Y29ydmV4LWRldi1zYWx0IQ$M6irG4c6XtX2Ri7KoOXCDEvwGFfiUOve78LuH9UlSJF1KznGiQpecgof3sBLe1lz7XeA4ubdifcaBYMcvXWQhA",
       }),
-    ).toThrow("BETTER_AUTH_SECRET must be changed in production.");
+    ).toThrow("APP_PASSWORD_HASH must be changed in production.");
   });
 
-  it("rejects short auth secrets in production", () => {
+  it("rejects malformed app password hashes", () => {
     expect(() =>
       parseServerEnv({
         ...productionEnv,
-        BETTER_AUTH_SECRET: "short-secret",
+        APP_PASSWORD_HASH: "not-a-password-hash",
       }),
-    ).toThrow("BETTER_AUTH_SECRET must be at least 32 characters in production.");
+    ).toThrow("APP_PASSWORD_HASH must be a valid Corvex scrypt hash.");
   });
 
-  it("accepts a strong auth secret in production", () => {
+  it("rejects short app session secrets in production", () => {
     expect(() =>
       parseServerEnv({
         ...productionEnv,
-        BETTER_AUTH_SECRET: "a-production-secret-with-32-chars",
+        APP_SESSION_SECRET: "short-secret",
       }),
-    ).not.toThrow();
+    ).toThrow("APP_SESSION_SECRET must be at least 32 characters in production.");
+  });
+
+  it("accepts strong app-password settings in production", () => {
+    expect(() => parseServerEnv(productionEnv)).not.toThrow();
   });
 
   it("rejects the default secrets encryption key in production", () => {
     expect(() =>
       parseServerEnv({
         ...productionEnv,
-        BETTER_AUTH_SECRET: "a-production-secret-with-32-chars",
         SECRETS_ENCRYPTION_KEY: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
       }),
     ).toThrow("SECRETS_ENCRYPTION_KEY must be changed in production.");
@@ -52,7 +58,6 @@ describe("server environment config", () => {
     expect(() =>
       parseServerEnv({
         ...productionEnv,
-        BETTER_AUTH_SECRET: "a-production-secret-with-32-chars",
         SECRETS_ENCRYPTION_KEY: "short",
       }),
     ).toThrow("SECRETS_ENCRYPTION_KEY must be 32 bytes encoded as hex or base64.");

@@ -1,4 +1,6 @@
 import { Prisma, prisma } from "../../utils/prisma";
+import type { ActivityActor } from "../activities/services";
+import { withProjectActivity } from "../activities/services";
 import type { CreateProjectInput, UpdateProjectInput } from "./schema";
 
 const projectSelect = {
@@ -63,33 +65,57 @@ export async function getProject(projectId: string) {
   return serializeProjectDetail(project);
 }
 
-export async function createProject(input: CreateProjectInput) {
-  return {
-    project: serializeProject(
-      await prisma.project.create({
-        data: createProjectData(input),
-        select: {
-          ...projectSelect,
-          customer: { select: { id: true, name: true } },
-        },
-      }),
-    ),
-  };
+export async function createProject(input: CreateProjectInput, actor: ActivityActor) {
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      project: serializeProject(
+        await transaction.project.create({
+          data: createProjectData(input),
+          select: {
+            ...projectSelect,
+            customer: { select: { id: true, name: true } },
+          },
+        }),
+      ),
+    }),
+    ({ project }) => ({
+      action: "Created",
+      entityId: project.id,
+      entityLabel: project.name,
+      entityType: "Project",
+      projectId: project.id,
+    }),
+  );
 }
 
-export async function updateProject(projectId: string, input: UpdateProjectInput) {
-  return {
-    project: serializeProject(
-      await prisma.project.update({
-        where: { id: projectId },
-        data: updateProjectData(input),
-        select: {
-          ...projectSelect,
-          customer: { select: { id: true, name: true } },
-        },
-      }),
-    ),
-  };
+export async function updateProject(
+  projectId: string,
+  input: UpdateProjectInput,
+  actor: ActivityActor,
+) {
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      project: serializeProject(
+        await transaction.project.update({
+          where: { id: projectId },
+          data: updateProjectData(input),
+          select: {
+            ...projectSelect,
+            customer: { select: { id: true, name: true } },
+          },
+        }),
+      ),
+    }),
+    ({ project }) => ({
+      action: "Updated",
+      entityId: project.id,
+      entityLabel: project.name,
+      entityType: "Project",
+      projectId,
+    }),
+  );
 }
 
 export async function deleteProject(projectId: string) {

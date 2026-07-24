@@ -17,7 +17,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@better-auth/prisma-adapter": "^1.6.20",
     "@hono/mcp": "0.3.0",
     "@hono/node-server": "^2.0.5",
     "@hono/zod-validator": "^0.8.0",
@@ -27,7 +26,6 @@
     "@repo/config": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/telemetry": "workspace:*",
-    "better-auth": "^1.6.20",
     "hono": "^4.12.26",
     "pg": "^8.22.0",
     "zod": "^4.4.3"

@@ -1,15 +1,14 @@
 import { apiConfig } from "@repo/config";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { auth } from "./modules/auth/auth";
-import { type AuthVariables, loadAuthSession } from "./modules/auth/middleware";
+import { type AppAuthVariables, loadAppSession } from "./modules/auth/middleware";
+import { appAuthRouter } from "./modules/auth/router";
 import { customersRouter } from "./modules/customers/router";
 import { mcpRouter } from "./modules/mcp/router";
-import { profileRouter } from "./modules/profile/router";
 import { projectsRouter } from "./modules/projects/router";
-import { usersRouter } from "./modules/users/router";
+import { searchRouter } from "./modules/search/router";
 
-export const app = new Hono<{ Variables: AuthVariables }>()
+export const app = new Hono<{ Variables: AppAuthVariables }>()
   .use(
     "*",
     cors({
@@ -19,27 +18,14 @@ export const app = new Hono<{ Variables: AuthVariables }>()
       origin: (origin) => (apiConfig.clientOrigins.includes(origin) ? origin : null),
     }),
   )
-  .use("*", loadAuthSession)
+  .use("*", loadAppSession)
   .get("/health", (c) => {
     return c.json({ ok: true, service: "api" }, 200);
   })
-  .get("/session", (c) => {
-    const user = c.get("user");
-    const session = c.get("session");
-
-    if (!user || !session) {
-      return c.json({ error: "unauthorized" }, 401);
-    }
-
-    return c.json({ session, user }, 200);
-  })
-  .on(["POST", "GET"], "/api/auth/*", (c) => {
-    return auth.handler(c.req.raw);
-  })
+  .route("/auth", appAuthRouter)
   .route("/customers", customersRouter)
   .route("/mcp", mcpRouter)
-  .route("/profile", profileRouter)
   .route("/projects", projectsRouter)
-  .route("/users", usersRouter);
+  .route("/search", searchRouter);
 
 export type AppType = typeof app;

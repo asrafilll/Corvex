@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import type { ActivityActor } from "../activities/services";
 import { createNote, listNotes } from "../project-notes/services";
 import { listSecrets } from "../secrets/services";
 import { taskPriorityValues, taskStatusValues } from "../tasks/schema";
@@ -23,7 +24,7 @@ function fail(message: string) {
 
 // Every tool is scoped to `projectId` via closure — no tool accepts a project
 // id, so a token can only ever reach its own project (ADR-0002).
-export function buildMcpServer(projectId: string) {
+export function buildMcpServer(projectId: string, actor: ActivityActor) {
   const server = new McpServer(
     { name: "corvex", version: "1.0.0" },
     { capabilities: { tools: {} } },
@@ -77,10 +78,14 @@ export function buildMcpServer(projectId: string) {
     async ({ dueDate, ...input }) =>
       ok(
         (
-          await createTask(projectId, {
-            ...input,
-            dueDate: dueDate === undefined ? undefined : new Date(dueDate),
-          })
+          await createTask(
+            projectId,
+            {
+              ...input,
+              dueDate: dueDate === undefined ? undefined : new Date(dueDate),
+            },
+            actor,
+          )
         ).task,
       ),
   );
@@ -109,11 +114,16 @@ export function buildMcpServer(projectId: string) {
 
       return ok(
         (
-          await updateTask(taskId, {
-            ...fields,
-            dueDate:
-              dueDate === undefined ? undefined : dueDate === null ? null : new Date(dueDate),
-          })
+          await updateTask(
+            projectId,
+            taskId,
+            {
+              ...fields,
+              dueDate:
+                dueDate === undefined ? undefined : dueDate === null ? null : new Date(dueDate),
+            },
+            actor,
+          )
         ).task,
       );
     },
@@ -146,7 +156,7 @@ export function buildMcpServer(projectId: string) {
         body: z.string(),
       },
     },
-    async (input) => ok((await createNote(projectId, input)).note),
+    async (input) => ok((await createNote(projectId, input, actor)).note),
   );
 
   server.registerTool(

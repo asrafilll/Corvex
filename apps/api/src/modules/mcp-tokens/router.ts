@@ -1,15 +1,16 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { type AuthVariables, requireUser } from "../auth/middleware";
+import { appActivityActor } from "../activities/services";
+import { type AppAuthVariables, requireAppSession } from "../auth/middleware";
 import { findProjectOrNull } from "../projects/services";
 import { createMcpTokenSchema, mcpTokenParamSchema, projectMcpTokensParamSchema } from "./schema";
 import { createMcpToken, findMcpTokenOrNull, listMcpTokens, revokeMcpToken } from "./services";
 
-export const mcpTokensRouter = new Hono<{ Variables: AuthVariables }>()
+export const mcpTokensRouter = new Hono<{ Variables: AppAuthVariables }>()
   .get("/", zValidator("param", projectMcpTokensParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -26,9 +27,9 @@ export const mcpTokensRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", projectMcpTokensParamSchema),
     zValidator("json", createMcpTokenSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -38,13 +39,13 @@ export const mcpTokensRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "not_found" }, 404);
       }
 
-      return c.json(await createMcpToken(projectId, c.req.valid("json")), 201);
+      return c.json(await createMcpToken(projectId, c.req.valid("json"), appActivityActor), 201);
     },
   )
   .post("/:tokenId/revoke", zValidator("param", mcpTokenParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -54,5 +55,5 @@ export const mcpTokensRouter = new Hono<{ Variables: AuthVariables }>()
       return c.json({ error: "not_found" }, 404);
     }
 
-    return c.json(await revokeMcpToken(tokenId), 200);
+    return c.json(await revokeMcpToken(projectId, tokenId, appActivityActor), 200);
   });

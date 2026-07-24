@@ -1,31 +1,28 @@
 import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../../app";
-import { baseDate, createAuthSession } from "../../test/helpers";
+import { baseDate, createTransactionMock } from "../../test/helpers";
 
 const mocks = vi.hoisted(() => ({
-  authHandler: vi.fn(),
-  getSession: vi.fn(),
+  readAppSession: vi.fn(),
   milestoneCreate: vi.fn(),
   milestoneDelete: vi.fn(),
   milestoneFindFirst: vi.fn(),
   milestoneFindMany: vi.fn(),
   milestoneUpdate: vi.fn(),
   projectFindUnique: vi.fn(),
+  activityCreate: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("../auth/auth", () => ({
-  auth: {
-    api: {
-      getSession: mocks.getSession,
-    },
-    handler: mocks.authHandler,
-  },
+  readAppSession: mocks.readAppSession,
 }));
 
 vi.mock("../../utils/prisma", () => ({
   Prisma,
   prisma: {
+    activity: { create: mocks.activityCreate },
     milestone: {
       create: mocks.milestoneCreate,
       delete: mocks.milestoneDelete,
@@ -36,6 +33,7 @@ vi.mock("../../utils/prisma", () => ({
     project: {
       findUnique: mocks.projectFindUnique,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -45,8 +43,7 @@ describe("milestones router", () => {
       mock.mockReset();
     }
 
-    mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
-    mocks.getSession.mockResolvedValue(createAuthSession());
+    mocks.readAppSession.mockResolvedValue(true);
     mocks.milestoneCreate.mockImplementation(({ data }) => Promise.resolve(createMilestone(data)));
     mocks.milestoneDelete.mockResolvedValue(createMilestone());
     mocks.milestoneFindFirst.mockResolvedValue(null);
@@ -55,10 +52,23 @@ describe("milestones router", () => {
       Promise.resolve(createMilestone({ id: where.id, ...data })),
     );
     mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.activityCreate.mockImplementation(({ data }) =>
+      Promise.resolve({ id: "activity-1", ...data }),
+    );
+    mocks.transaction.mockImplementation(
+      createTransactionMock({
+        activity: { create: mocks.activityCreate },
+        milestone: {
+          create: mocks.milestoneCreate,
+          delete: mocks.milestoneDelete,
+          update: mocks.milestoneUpdate,
+        },
+      }),
+    );
   });
 
   it("returns unauthorized without a session", async () => {
-    mocks.getSession.mockResolvedValue(null);
+    mocks.readAppSession.mockResolvedValue(null);
 
     const response = await app.request("/projects/project-1/milestones");
 

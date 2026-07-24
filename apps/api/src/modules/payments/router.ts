@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { type AuthVariables, requireUser } from "../auth/middleware";
+import { appActivityActor } from "../activities/services";
+import { type AppAuthVariables, requireAppSession } from "../auth/middleware";
 import { findProjectOrNull } from "../projects/services";
 import {
   createPaymentSchema,
@@ -16,11 +17,11 @@ import {
   updatePayment,
 } from "./services";
 
-export const paymentsRouter = new Hono<{ Variables: AuthVariables }>()
+export const paymentsRouter = new Hono<{ Variables: AppAuthVariables }>()
   .get("/", zValidator("param", projectPaymentsParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -37,9 +38,9 @@ export const paymentsRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", projectPaymentsParamSchema),
     zValidator("json", createPaymentSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -49,7 +50,7 @@ export const paymentsRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "not_found" }, 404);
       }
 
-      return c.json(await createPayment(projectId, c.req.valid("json")), 201);
+      return c.json(await createPayment(projectId, c.req.valid("json"), appActivityActor), 201);
     },
   )
   .patch(
@@ -57,9 +58,9 @@ export const paymentsRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", paymentParamSchema),
     zValidator("json", updatePaymentSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -69,13 +70,16 @@ export const paymentsRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "not_found" }, 404);
       }
 
-      return c.json(await updatePayment(paymentId, c.req.valid("json")), 200);
+      return c.json(
+        await updatePayment(projectId, paymentId, c.req.valid("json"), appActivityActor),
+        200,
+      );
     },
   )
   .delete("/:paymentId", zValidator("param", paymentParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -85,5 +89,5 @@ export const paymentsRouter = new Hono<{ Variables: AuthVariables }>()
       return c.json({ error: "not_found" }, 404);
     }
 
-    return c.json(await deletePayment(paymentId), 200);
+    return c.json(await deletePayment(projectId, paymentId, appActivityActor), 200);
   });

@@ -1,5 +1,5 @@
 {
-  "name": "monorepo-template",
+  "name": "corvex",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "format": "biome format --write .",
     "lint": "biome lint .",
     "with-env": "dotenv -e .env --",
-    "createsuperuser": "pnpm with-env tsx scripts/createsuperuser.ts",
+    "app-password:hash": "tsx scripts/hash-app-password.ts",
     "db:generate": "pnpm --filter @repo/api db:generate",
     "db:deploy": "pnpm --filter @repo/api db:deploy",
     "db:migrate": "pnpm --filter @repo/api db:migrate",
@@ -27,5 +27,10 @@
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
+  },
+  "pnpm": {
+    "overrides": {
+      "@hono/node-server@<1.19.13": "1.19.13"
+    }
   }
 }

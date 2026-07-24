@@ -1,6 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { type AuthVariables, requireUser } from "../auth/middleware";
+import { activitiesRouter } from "../activities/router";
+import { appActivityActor } from "../activities/services";
+import { type AppAuthVariables, requireAppSession } from "../auth/middleware";
 import {
   createProjectSchema,
   projectParamSchema,
@@ -22,25 +24,26 @@ import { projectNotesRouter } from "../project-notes/router";
 import { secretsRouter } from "../secrets/router";
 import { tasksRouter } from "../tasks/router";
 
-export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
+export const projectsRouter = new Hono<{ Variables: AppAuthVariables }>()
   .get("/", zValidator("query", projectsQuerySchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
     return c.json(await listProjects(c.req.valid("query")), 200);
   })
   .post("/", zValidator("json", createProjectSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
-    return c.json(await createProject(c.req.valid("json")), 201);
+    return c.json(await createProject(c.req.valid("json"), appActivityActor), 201);
   })
+  .route("/:projectId/activities", activitiesRouter)
   .route("/:projectId/tasks", tasksRouter)
   .route("/:projectId/milestones", milestonesRouter)
   .route("/:projectId/payments", paymentsRouter)
@@ -48,9 +51,9 @@ export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
   .route("/:projectId/secrets", secretsRouter)
   .route("/:projectId/mcp-tokens", mcpTokensRouter)
   .get("/:projectId", zValidator("param", projectParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -67,9 +70,9 @@ export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", projectParamSchema),
     zValidator("json", updateProjectSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -79,13 +82,13 @@ export const projectsRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "not_found" }, 404);
       }
 
-      return c.json(await updateProject(projectId, c.req.valid("json")), 200);
+      return c.json(await updateProject(projectId, c.req.valid("json"), appActivityActor), 200);
     },
   )
   .delete("/:projectId", zValidator("param", projectParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 

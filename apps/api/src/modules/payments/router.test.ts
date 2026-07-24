@@ -1,31 +1,28 @@
 import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../../app";
-import { baseDate, createAuthSession } from "../../test/helpers";
+import { baseDate, createTransactionMock } from "../../test/helpers";
 
 const mocks = vi.hoisted(() => ({
-  authHandler: vi.fn(),
-  getSession: vi.fn(),
+  readAppSession: vi.fn(),
   paymentCreate: vi.fn(),
   paymentDelete: vi.fn(),
   paymentFindFirst: vi.fn(),
   paymentFindMany: vi.fn(),
   paymentUpdate: vi.fn(),
   projectFindUnique: vi.fn(),
+  activityCreate: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("../auth/auth", () => ({
-  auth: {
-    api: {
-      getSession: mocks.getSession,
-    },
-    handler: mocks.authHandler,
-  },
+  readAppSession: mocks.readAppSession,
 }));
 
 vi.mock("../../utils/prisma", () => ({
   Prisma,
   prisma: {
+    activity: { create: mocks.activityCreate },
     payment: {
       create: mocks.paymentCreate,
       delete: mocks.paymentDelete,
@@ -36,6 +33,7 @@ vi.mock("../../utils/prisma", () => ({
     project: {
       findUnique: mocks.projectFindUnique,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -45,8 +43,7 @@ describe("payments router", () => {
       mock.mockReset();
     }
 
-    mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
-    mocks.getSession.mockResolvedValue(createAuthSession());
+    mocks.readAppSession.mockResolvedValue(true);
     mocks.paymentCreate.mockImplementation(({ data }) => Promise.resolve(createPayment(data)));
     mocks.paymentDelete.mockResolvedValue(createPayment());
     mocks.paymentFindFirst.mockResolvedValue(null);
@@ -55,10 +52,23 @@ describe("payments router", () => {
       Promise.resolve(createPayment({ id: where.id, ...data })),
     );
     mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.activityCreate.mockImplementation(({ data }) =>
+      Promise.resolve({ id: "activity-1", ...data }),
+    );
+    mocks.transaction.mockImplementation(
+      createTransactionMock({
+        activity: { create: mocks.activityCreate },
+        payment: {
+          create: mocks.paymentCreate,
+          delete: mocks.paymentDelete,
+          update: mocks.paymentUpdate,
+        },
+      }),
+    );
   });
 
   it("returns unauthorized without a session", async () => {
-    mocks.getSession.mockResolvedValue(null);
+    mocks.readAppSession.mockResolvedValue(null);
 
     const response = await app.request("/projects/project-1/payments");
 
@@ -114,6 +124,7 @@ describe("payments router", () => {
     expect(data.amount).toBeInstanceOf(Prisma.Decimal);
     expect(data.amount.toString()).toBe("250.75");
     expect(data.projectId).toBe("project-1");
+    expect(JSON.stringify(mocks.activityCreate.mock.calls[0]?.[0].data)).not.toContain("250.75");
   });
 
   it("rejects malformed amounts", async () => {

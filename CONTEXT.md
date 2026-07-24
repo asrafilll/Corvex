@@ -40,11 +40,16 @@ _Avoid_: Key, credential note
 A project-scoped bearer credential that lets an MCP client act on exactly one project.
 _Avoid_: API key, personal token
 
+**Activity**:
+An immutable, server-generated record of a meaningful Project change, attributed either to the app or to one MCP Token. It contains safe identity metadata only, never request bodies, money amounts, Secret values, token hashes, or raw tokens.
+_Avoid_: Request log, payload log
+
 ## Relationships
 
 - A **Customer** has zero or more **Projects**; a **Project** has at most one **Customer** (internal projects have none)
 - A **Project** owns its **Tasks**, **Milestones**, **Payments**, **Notes**, **Secrets**, and **MCP Tokens**; deleting a project deletes them
 - An **MCP Token** grants access to exactly one **Project** — never across projects
+- **Activity** belongs to one **Project**; MCP-authored Activity identifies the responsible **MCP Token**
 - **Project** status: Lead → Active ⇄ On Hold → Completed; Cancelled from anywhere
 - **Task** status: Todo → In Progress → Done; Cancelled from anywhere
 

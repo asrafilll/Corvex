@@ -1,4 +1,6 @@
 import { prisma } from "../../utils/prisma";
+import type { ActivityActor } from "../activities/services";
+import { withProjectActivity } from "../activities/services";
 import type { CreateNoteInput, UpdateNoteInput } from "./schema";
 
 export async function listNotes(projectId: string) {
@@ -17,25 +19,55 @@ export async function findNoteOrNull(projectId: string, noteId: string) {
   });
 }
 
-export async function createNote(projectId: string, input: CreateNoteInput) {
-  return {
-    note: await prisma.note.create({
-      data: { ...input, projectId },
+export async function createNote(projectId: string, input: CreateNoteInput, actor: ActivityActor) {
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      note: await transaction.note.create({ data: { ...input, projectId } }),
     }),
-  };
+    ({ note }) => ({
+      action: "Created",
+      entityId: note.id,
+      entityLabel: note.title,
+      entityType: "Note",
+      projectId,
+    }),
+  );
 }
 
-export async function updateNote(noteId: string, input: UpdateNoteInput) {
-  return {
-    note: await prisma.note.update({
-      where: { id: noteId },
-      data: input,
+export async function updateNote(
+  projectId: string,
+  noteId: string,
+  input: UpdateNoteInput,
+  actor: ActivityActor,
+) {
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      note: await transaction.note.update({ where: { id: noteId }, data: input }),
     }),
-  };
+    ({ note }) => ({
+      action: "Updated",
+      entityId: note.id,
+      entityLabel: note.title,
+      entityType: "Note",
+      projectId,
+    }),
+  );
 }
 
-export async function deleteNote(noteId: string) {
-  await prisma.note.delete({ where: { id: noteId } });
+export async function deleteNote(projectId: string, noteId: string, actor: ActivityActor) {
+  await withProjectActivity(
+    actor,
+    (transaction) => transaction.note.delete({ where: { id: noteId } }),
+    (note) => ({
+      action: "Deleted",
+      entityId: note.id,
+      entityLabel: note.title,
+      entityType: "Note",
+      projectId,
+    }),
+  );
 
   return { ok: true };
 }

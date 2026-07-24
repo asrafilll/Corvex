@@ -5,11 +5,11 @@ import { z } from "zod";
 export type RuntimeEnv = "development" | "test" | "production";
 export type LogLevel = "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
 
-const defaultClientOrigins = "http://localhost:3000,http://localhost:4000";
-const defaultDatabaseUrl =
-  "postgresql://postgres:postgres@localhost:15432/monorepo_template?schema=public";
-const defaultBetterAuthUrl = "http://localhost:8000";
-const defaultBetterAuthSecret = "dev-change-me";
+const defaultClientOrigins = "http://localhost:3000";
+const defaultDatabaseUrl = "postgresql://postgres:postgres@localhost:15432/corvex?schema=public";
+const defaultAppPasswordHash =
+  "scrypt$Y29ydmV4LWRldi1zYWx0IQ$M6irG4c6XtX2Ri7KoOXCDEvwGFfiUOve78LuH9UlSJF1KznGiQpecgof3sBLe1lz7XeA4ubdifcaBYMcvXWQhA";
+const defaultAppSessionSecret = "corvex-development-session-secret";
 const defaultSecretsEncryptionKey =
   "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 const productionSecretMinimumLength = 32;
@@ -45,9 +45,8 @@ const serverEnvSchema = z
   .object({
     NODE_ENV: runtimeEnvSchema,
     API_PORT: z.coerce.number().int().positive().default(8000),
-    AUTH_SECRET: optionalStringSchema,
-    BETTER_AUTH_SECRET: optionalStringSchema,
-    BETTER_AUTH_URL: z.string().trim().url().default(defaultBetterAuthUrl),
+    APP_PASSWORD_HASH: optionalStringSchema,
+    APP_SESSION_SECRET: optionalStringSchema,
     CLIENT_ORIGINS: z.string().trim().min(1).default(defaultClientOrigins),
     DATABASE_URL: z.string().trim().min(1).default(defaultDatabaseUrl),
     ENABLE_TELEMETRY: booleanSchema.default(false),
@@ -61,25 +60,42 @@ const serverEnvSchema = z
     TELEMETRY_SERVICE_NAMESPACE: optionalStringSchema,
   })
   .superRefine((env, context) => {
-    const betterAuthSecret = env.BETTER_AUTH_SECRET ?? env.AUTH_SECRET ?? defaultBetterAuthSecret;
+    const appPasswordHash = env.APP_PASSWORD_HASH ?? defaultAppPasswordHash;
+    const appSessionSecret = env.APP_SESSION_SECRET ?? defaultAppSessionSecret;
+
+    if (!isScryptPasswordHash(appPasswordHash)) {
+      context.addIssue({
+        code: "custom",
+        message: "APP_PASSWORD_HASH must be a valid Corvex scrypt hash.",
+        path: ["APP_PASSWORD_HASH"],
+      });
+    }
 
     if (env.NODE_ENV !== "production") {
       return;
     }
 
-    if (betterAuthSecret === defaultBetterAuthSecret) {
+    if (appPasswordHash === defaultAppPasswordHash) {
       context.addIssue({
         code: "custom",
-        message: "BETTER_AUTH_SECRET must be changed in production.",
-        path: ["BETTER_AUTH_SECRET"],
+        message: "APP_PASSWORD_HASH must be changed in production.",
+        path: ["APP_PASSWORD_HASH"],
       });
     }
 
-    if (betterAuthSecret.length < productionSecretMinimumLength) {
+    if (appSessionSecret === defaultAppSessionSecret) {
       context.addIssue({
         code: "custom",
-        message: `BETTER_AUTH_SECRET must be at least ${productionSecretMinimumLength} characters in production.`,
-        path: ["BETTER_AUTH_SECRET"],
+        message: "APP_SESSION_SECRET must be changed in production.",
+        path: ["APP_SESSION_SECRET"],
+      });
+    }
+
+    if (appSessionSecret.length < productionSecretMinimumLength) {
+      context.addIssue({
+        code: "custom",
+        message: `APP_SESSION_SECRET must be at least ${productionSecretMinimumLength} characters in production.`,
+        path: ["APP_SESSION_SECRET"],
       });
     }
 
@@ -126,10 +142,9 @@ export const apiConfig = {
   clientOrigins: parseCsv(env.CLIENT_ORIGINS),
 } as const;
 
-export const betterAuthConfig = {
-  secret: env.BETTER_AUTH_SECRET ?? env.AUTH_SECRET ?? defaultBetterAuthSecret,
-  trustedOrigins: parseCsv(env.CLIENT_ORIGINS),
-  url: env.BETTER_AUTH_URL,
+export const appPasswordConfig = {
+  passwordHash: env.APP_PASSWORD_HASH ?? defaultAppPasswordHash,
+  sessionSecret: env.APP_SESSION_SECRET ?? defaultAppSessionSecret,
 } as const;
 
 export const databaseConfig = {
@@ -182,4 +197,21 @@ function parseCsv(value: string) {
 
 function is32ByteKey(value: string) {
   return Buffer.from(value, "hex").length === 32 || Buffer.from(value, "base64").length === 32;
+}
+
+function isScryptPasswordHash(value: string) {
+  const [algorithm, encodedSalt, encodedHash, extra] = value.split("$");
+
+  if (algorithm !== "scrypt" || !encodedSalt || !encodedHash || extra !== undefined) {
+    return false;
+  }
+
+  try {
+    return (
+      Buffer.from(encodedSalt, "base64url").length >= 16 &&
+      Buffer.from(encodedHash, "base64url").length === 64
+    );
+  } catch {
+    return false;
+  }
 }

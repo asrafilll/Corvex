@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { type AuthVariables, requireUser } from "../auth/middleware";
+import { type AppAuthVariables, requireAppSession } from "../auth/middleware";
 import { createCustomerSchema, customerParamSchema, updateCustomerSchema } from "./schema";
 import {
   createCustomer,
@@ -10,29 +10,29 @@ import {
   updateCustomer,
 } from "./services";
 
-export const customersRouter = new Hono<{ Variables: AuthVariables }>()
+export const customersRouter = new Hono<{ Variables: AppAuthVariables }>()
   .get("/", async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
     return c.json(await listCustomers(), 200);
   })
   .post("/", zValidator("json", createCustomerSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
     return c.json(await createCustomer(c.req.valid("json")), 201);
   })
   .get("/:customerId", zValidator("param", customerParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -49,9 +49,9 @@ export const customersRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", customerParamSchema),
     zValidator("json", updateCustomerSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -65,9 +65,9 @@ export const customersRouter = new Hono<{ Variables: AuthVariables }>()
     },
   )
   .delete("/:customerId", zValidator("param", customerParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 

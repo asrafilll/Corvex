@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { type AuthVariables, requireUser } from "../auth/middleware";
+import { appActivityActor } from "../activities/services";
+import { type AppAuthVariables, requireAppSession } from "../auth/middleware";
 import { findProjectOrNull } from "../projects/services";
 import {
   createMilestoneSchema,
@@ -16,11 +17,11 @@ import {
   updateMilestone,
 } from "./services";
 
-export const milestonesRouter = new Hono<{ Variables: AuthVariables }>()
+export const milestonesRouter = new Hono<{ Variables: AppAuthVariables }>()
   .get("/", zValidator("param", projectMilestonesParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -37,9 +38,9 @@ export const milestonesRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", projectMilestonesParamSchema),
     zValidator("json", createMilestoneSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -49,7 +50,7 @@ export const milestonesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "not_found" }, 404);
       }
 
-      return c.json(await createMilestone(projectId, c.req.valid("json")), 201);
+      return c.json(await createMilestone(projectId, c.req.valid("json"), appActivityActor), 201);
     },
   )
   .patch(
@@ -57,9 +58,9 @@ export const milestonesRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", milestoneParamSchema),
     zValidator("json", updateMilestoneSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -69,13 +70,16 @@ export const milestonesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "not_found" }, 404);
       }
 
-      return c.json(await updateMilestone(milestoneId, c.req.valid("json")), 200);
+      return c.json(
+        await updateMilestone(projectId, milestoneId, c.req.valid("json"), appActivityActor),
+        200,
+      );
     },
   )
   .delete("/:milestoneId", zValidator("param", milestoneParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -85,5 +89,5 @@ export const milestonesRouter = new Hono<{ Variables: AuthVariables }>()
       return c.json({ error: "not_found" }, 404);
     }
 
-    return c.json(await deleteMilestone(milestoneId), 200);
+    return c.json(await deleteMilestone(projectId, milestoneId, appActivityActor), 200);
   });

@@ -2,13 +2,11 @@ import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../../app";
 import { hashMcpToken } from "../../utils/mcp-token";
-import { baseDate } from "../../test/helpers";
+import { baseDate, createTransactionMock } from "../../test/helpers";
 
 const validToken = "cvx_test-token";
 
 const mocks = vi.hoisted(() => ({
-  getSession: vi.fn(),
-  authHandler: vi.fn(),
   mcpTokenFindUnique: vi.fn(),
   mcpTokenUpdate: vi.fn(),
   projectFindUnique: vi.fn(),
@@ -22,18 +20,14 @@ const mocks = vi.hoisted(() => ({
   noteCreate: vi.fn(),
   milestoneFindMany: vi.fn(),
   secretFindMany: vi.fn(),
-}));
-
-vi.mock("../auth/auth", () => ({
-  auth: {
-    api: { getSession: mocks.getSession },
-    handler: mocks.authHandler,
-  },
+  activityCreate: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("../../utils/prisma", () => ({
   Prisma,
   prisma: {
+    activity: { create: mocks.activityCreate },
     mcpToken: { findUnique: mocks.mcpTokenFindUnique, update: mocks.mcpTokenUpdate },
     project: { findUnique: mocks.projectFindUnique },
     task: {
@@ -50,6 +44,7 @@ vi.mock("../../utils/prisma", () => ({
     },
     milestone: { findMany: mocks.milestoneFindMany },
     secret: { findMany: mocks.secretFindMany },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -89,12 +84,16 @@ describe("mcp router", () => {
       mock.mockReset();
     }
 
-    mocks.getSession.mockResolvedValue(null);
-    mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
     mocks.mcpTokenFindUnique.mockImplementation(({ where }) =>
       Promise.resolve(
         where.tokenHash === hashMcpToken(validToken)
-          ? { id: "token-1", projectId: "project-1", revoked: false, lastUsedAt: null }
+          ? {
+              id: "token-1",
+              name: "Claude Code",
+              projectId: "project-1",
+              revoked: false,
+              lastUsedAt: null,
+            }
           : null,
       ),
     );
@@ -123,6 +122,20 @@ describe("mcp router", () => {
     mocks.noteCreate.mockImplementation(({ data }) => Promise.resolve({ id: "note-1", ...data }));
     mocks.milestoneFindMany.mockResolvedValue([]);
     mocks.secretFindMany.mockResolvedValue([]);
+    mocks.activityCreate.mockImplementation(({ data }) =>
+      Promise.resolve({ id: "activity-1", ...data }),
+    );
+    mocks.transaction.mockImplementation(
+      createTransactionMock({
+        activity: { create: mocks.activityCreate },
+        note: { create: mocks.noteCreate },
+        task: {
+          aggregate: mocks.taskAggregate,
+          create: mocks.taskCreate,
+          update: mocks.taskUpdate,
+        },
+      }),
+    );
   });
 
   it("rejects a request with no token", async () => {
@@ -219,6 +232,16 @@ describe("mcp router", () => {
     expect(JSON.parse(text).title).toBe("Ship MCP");
     expect(mocks.taskCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({ projectId: "project-1", title: "Ship MCP" }),
+    });
+    expect(mocks.activityCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actorLabel: "Claude Code",
+        actorType: "Mcp",
+        entityLabel: "Ship MCP",
+        entityType: "Task",
+        mcpTokenId: "token-1",
+        projectId: "project-1",
+      }),
     });
   });
 

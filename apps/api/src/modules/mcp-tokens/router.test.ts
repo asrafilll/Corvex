@@ -2,30 +2,27 @@ import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../../app";
-import { baseDate, createAuthSession } from "../../test/helpers";
+import { baseDate, createTransactionMock } from "../../test/helpers";
 
 const mocks = vi.hoisted(() => ({
-  authHandler: vi.fn(),
-  getSession: vi.fn(),
+  readAppSession: vi.fn(),
   mcpTokenCreate: vi.fn(),
   mcpTokenFindFirst: vi.fn(),
   mcpTokenFindMany: vi.fn(),
   mcpTokenUpdate: vi.fn(),
   projectFindUnique: vi.fn(),
+  activityCreate: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("../auth/auth", () => ({
-  auth: {
-    api: {
-      getSession: mocks.getSession,
-    },
-    handler: mocks.authHandler,
-  },
+  readAppSession: mocks.readAppSession,
 }));
 
 vi.mock("../../utils/prisma", () => ({
   Prisma,
   prisma: {
+    activity: { create: mocks.activityCreate },
     mcpToken: {
       create: mocks.mcpTokenCreate,
       findFirst: mocks.mcpTokenFindFirst,
@@ -35,6 +32,7 @@ vi.mock("../../utils/prisma", () => ({
     project: {
       findUnique: mocks.projectFindUnique,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -44,8 +42,7 @@ describe("mcp tokens router", () => {
       mock.mockReset();
     }
 
-    mocks.authHandler.mockResolvedValue(new Response(null, { status: 404 }));
-    mocks.getSession.mockResolvedValue(createAuthSession());
+    mocks.readAppSession.mockResolvedValue(true);
     mocks.mcpTokenCreate.mockImplementation(({ data }) =>
       Promise.resolve(createMcpToken({ name: data.name })),
     );
@@ -55,10 +52,19 @@ describe("mcp tokens router", () => {
       Promise.resolve(createMcpToken({ id: where.id, ...data })),
     );
     mocks.projectFindUnique.mockResolvedValue({ id: "project-1" });
+    mocks.activityCreate.mockImplementation(({ data }) =>
+      Promise.resolve({ id: "activity-1", ...data }),
+    );
+    mocks.transaction.mockImplementation(
+      createTransactionMock({
+        activity: { create: mocks.activityCreate },
+        mcpToken: { create: mocks.mcpTokenCreate, update: mocks.mcpTokenUpdate },
+      }),
+    );
   });
 
   it("returns unauthorized without a session", async () => {
-    mocks.getSession.mockResolvedValue(null);
+    mocks.readAppSession.mockResolvedValue(null);
 
     const response = await app.request("/projects/project-1/mcp-tokens");
 
@@ -117,6 +123,9 @@ describe("mcp tokens router", () => {
     expect(data.tokenHash).toMatch(/^[0-9a-f]{64}$/);
     expect(data.tokenHash).toBe(createHash("sha256").update(parsed.token).digest("hex"));
     expect(data).not.toHaveProperty("token");
+    const activityData = JSON.stringify(mocks.activityCreate.mock.calls[0]?.[0].data);
+    expect(activityData).not.toContain(parsed.token);
+    expect(activityData).not.toContain(data.tokenHash);
   });
 
   it("returns not_found when creating on a missing project", async () => {

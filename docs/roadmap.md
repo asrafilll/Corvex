@@ -2,7 +2,7 @@
 
 Architect's brief for finishing Corvex. Work top to bottom; one session per numbered block, commit + push after each. Spec lives in [corvex-plan.md](./corvex-plan.md), domain language in [CONTEXT.md](../CONTEXT.md), hard rules in [AGENTS.md](../AGENTS.md) and [docs/adr/](./adr/). If this file and the plan disagree, this file wins (it is newer).
 
-## Current state (2026-07-05)
+## Current state (2026-07-20)
 
 Done and pushed on `main`:
 
@@ -10,11 +10,13 @@ Done and pushed on `main`:
 - API modules: `customers/`, `projects/` (detail payload incl. paidTotal/outstanding), `tasks/` (nested CRUD + reorder). All mounted in `app.ts`, RPC `AppType` picks them up.
 - Session 1 done (2026-07-05): `milestones/`, `payments/`, `project-notes/` — nested CRUD, mounted in projects router, tests in module `router.test.ts` files, shared helpers in `src/test/helpers.ts`.
 - Session 2 done (2026-07-05): `secrets/` (encrypted create/update, POST reveal, 409 duplicate name via P2002 → `DuplicateSecretNameError`) + `mcp-tokens/` (raw `cvx_` token returned once on create, sha256 hash stored, revoke). Token generate/hash helpers in `src/utils/mcp-token.ts` for Session 5 reuse. No body-logging middleware exists in app.ts — confirmed.
-- Design locked: "Linear Dense" — `.claude/skills/corvex-design/SKILL.md` has the layout rules (three-pane detail, h-8 task rows, priority dots). Invoke that skill before any UI work.
+- Design locked: black-and-white editorial skin on a Linear-like information architecture — pure white canvas, soft 1px structural borders, selective hard black shadows on focal surfaces, Space Grotesk, large readable app typography, and an icon-led sidebar. Saturated blue-purple is the only brand accent and appears decisively on selection and key actions. Project detail uses full-width Overview, Tasks, Payments, Milestones, Secrets, and MCP Tokens tabs. `.claude/skills/corvex-design/SKILL.md` is the source of truth; invoke it before any UI work.
+- Single-user access revised (2026-07-20): Better Auth registration/login/profile and the admin app are removed. Human UI access is one app password (`APP_PASSWORD_HASH`) with a signed HTTP-only browser-session cookie (`APP_SESSION_SECRET`), plus an explicit Lock action. MCP remains independently authenticated by project-scoped Bearer tokens.
+- Daily workflow expansion (2026-07-20): Tasks open in a full detail dialog with editable title, markdown description, status, priority, and due date. The shell has a `Cmd/Ctrl+K` command palette for allowlisted global search (Projects, Customers, Tasks, Notes) and Project-aware quick Task capture. Project detail has an append-only Activity tab; UI and MCP mutations write actor-aware records atomically, and MCP Token rows surface their latest agent action. Activity metadata never stores request bodies, money amounts, Secret values, token hashes, or raw tokens.
 
-Not started: MCP server (Session 5), closeout (Session 6).
+All Phase 1 and Phase 2 product modules are implemented. Remaining work is closeout (Session 6).
 
-Session 4 done (2026-07-06): three-pane `projects.$projectId` — header with inline status Select (tinted pill per status) + deadline; main column has grouped dense task rows (status dot dropdown, priority dot, up/down reorder via POST /reorder, inline add, delete) then markdown notes (react-markdown + remark-gfm, styled via Tailwind child selectors since no typography plugin) with add/edit dialog; right rail (w-64) has customer link, budget total/paid(emerald)/outstanding(amber), inline-add payments, milestone checklist with done toggle, masked secrets (reveal → POST /reveal, copy, auto-rehide 30s, delete confirm) and MCP tokens (create shows raw cvx_ once with copy + warning, revoke confirm). Per-resource services/hooks in modules/{tasks,project-notes,payments,milestones,secrets,mcp-tokens}/; all mutations invalidate the root ["projects"] key. Verified live end-to-end (task, payment→budget math, secret reveal round-trip proving key wiring, token create-once, markdown note) in light + dark.
+Session 4 done (2026-07-06; layout revised 2026-07-20): `projects.$projectId` — header with inline status Select (tinted pill per status) + deadline; full-width tabs for Overview, Tasks, Payments, Milestones, Secrets, and MCP Tokens. Overview contains Customer, Budget, and markdown Notes; every operational collection has a focused workspace. Tasks uses larger grouped rows (status dropdown, priority marker, title + description, up/down reorder via POST /reorder, create dialog, delete). Per-resource services/hooks in modules/{tasks,project-notes,payments,milestones,secrets,mcp-tokens}/; all mutations invalidate the root ["projects"] key. Verified live end-to-end (task, payment→budget math, secret reveal round-trip proving key wiring, token create-once, markdown note). Creating a Project closes the dialog and refreshes `/projects`; it does not navigate into the new Project.
 
 Session 3 done (2026-07-05): react-markdown+remark-gfm installed; shell nav (Projects/Customers, `fullWidth` prop on `PlatformAppShell` for dense pages); hooks in `modules/{projects,customers}/hooks/` over shared `lib/api.ts` client (`InferRequestType` re-exported from `@repo/api-client`); `projects.index` (status tabs, table, create dialog), `customers.index` + `customers.$customerId` (create/edit dialogs), minimal `projects.$projectId` placeholder for Session 4. Verified live in light+dark. Local dev note: repo `.env` (gitignored) points at dedicated `corvex` DB + API_PORT 8010 because the shared `monorepo_template` DB/port 8000 are occupied by another project; vite `envDir` is repo root.
 
@@ -87,11 +89,11 @@ Verify both light and .dark mode by running the app and clicking through. Finish
 Prompt:
 
 ```text
-Invoke the corvex-design skill — the three-pane project detail layout it specifies is mandatory. Read docs/roadmap.md (Session 4). Build routes/projects.$projectId.tsx in apps/platform:
+Invoke the corvex-design skill — the full-width tabbed project detail layout it specifies is mandatory. Read docs/roadmap.md (Session 4). Build routes/projects.$projectId.tsx in apps/platform:
 
 - Header: breadcrumb (Projects / name), inline status Select (updates immediately), tinted status pill, deadline right-aligned.
-- Main column: tasks grouped In Progress → Todo → Done as dense h-8 rows (priority dot, title, due date; inline add; status change; reorder via up/down buttons or drag — POST /reorder). Below: notes list with markdown render (react-markdown + remark-gfm), add/edit via dialog with plain Textarea.
-- Right rail (w-64): customer (link to detail), budget with paid (emerald) / outstanding (amber), payments list + inline add-payment, milestones checklist with done toggle + add, secrets masked ("••••••••", Reveal → POST reveal → show with copy button, auto-rehide ~30s, never toast a value), MCP tokens (create dialog shows raw cvx_ token once with copy + "won't be shown again" warning, revoke with confirm alert-dialog naming the token).
+- Tabs: Overview, Tasks, Payments, Milestones, Secrets, MCP Tokens. Overview contains customer, budget, and notes with markdown render (react-markdown + remark-gfm), add/edit via dialog with plain Textarea.
+- Tasks are grouped In Progress → Todo → Done (priority dot, title + optional description, due date; create dialog; status change; reorder via up/down buttons or drag — POST /reorder). Payments support list + inline add; Milestones support checklist + add; Secrets stay masked ("••••••••", Reveal → POST reveal → show with copy button, auto-rehide ~30s, never toast a value); MCP Tokens creation shows the raw cvx_ token once with copy + "won't be shown again" warning, and revoke uses a confirm alert-dialog naming the token.
 
 All data via the Session 3 hook pattern. Verify light + dark by running the full manual flow: create customer → project → tasks → payment → note → secret (reveal after API restart to prove key wiring) → token. Finish with typecheck, test, check:fix, commit, push.
 ```
@@ -120,7 +122,7 @@ Prompt:
 ```text
 Read docs/roadmap.md (Session 6). Closeout pass:
 
-1. Migrate remaining project/task tests out of apps/api/src/app.test.ts into modules/<module>/router.test.ts with a shared mock helper; app.test.ts keeps only auth/profile/users/app-level tests. lexa audit --max 25 must report 0 high 0 warning.
+1. Migrate remaining project/task tests out of apps/api/src/app.test.ts into modules/<module>/router.test.ts with a shared mock helper; app.test.ts keeps only app-level tests and app-password behavior stays in modules/auth/router.test.ts. lexa audit --max 25 must report 0 high 0 warning.
 2. README: replace template copy with Corvex feature overview, setup steps (env vars incl. SECRETS_ENCRYPTION_KEY, docker compose dev DB, migrate, dev), and the MCP client setup snippet.
 3. Full manual verification per docs/corvex-plan.md "Verification" section; fix anything broken.
 4. Update AGENTS.md Status section to "all Phase 1 + 2 modules done". Delete docs/roadmap.md — it is finished. Commit, push.

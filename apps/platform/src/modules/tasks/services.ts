@@ -15,6 +15,14 @@ export const taskStatusValues = [
   "Cancelled",
 ] as const satisfies readonly TaskStatus[];
 
+export const taskPriorityValues = [
+  "None",
+  "Low",
+  "Medium",
+  "High",
+  "Urgent",
+] as const satisfies readonly TaskPriority[];
+
 export async function createTask(projectId: string, input: CreateTaskInput) {
   const response = await tasksClient.$post({ param: { projectId }, json: input });
 

@@ -7,20 +7,20 @@ progress so we can resume. Delete this file (and `roadmap.md`) when Session 6 is
 
 - [ ] **1. Migrate tests out of `app.test.ts`.** Move the remaining project/task
       tests from `apps/api/src/app.test.ts` into `modules/<module>/router.test.ts`
-      using a shared mock helper. `app.test.ts` keeps only auth/profile/users/
-      app-level tests. Gate: `lexa audit --max 25` reports **0 high, 0 warning**
+      using a shared mock helper. `app.test.ts` keeps only app-level tests;
+      app-password tests stay in `modules/auth/router.test.ts`. Gate: `lexa audit --max 25` reports **0 high, 0 warning**
       (it currently flags `app.test.ts` at 854 lines).
       - New per-module tests already exist for milestones/payments/project-notes/
         secrets/mcp-tokens/mcp; projects + tasks are the ones still living in
         `app.test.ts`.
       - Follow the mock pattern in `modules/mcp/router.test.ts` /
         `modules/mcp-tokens/router.test.ts` (hoisted `vi.fn()` mocks, `vi.mock`
-        of `../../utils/prisma` and `../auth/auth`, `baseDate`/`createAuthSession`
-        from `src/test/helpers.ts`). Consider extracting a shared mock helper.
+      of `../../utils/prisma` and `readAppSession`, with `baseDate`
+      from `src/test/helpers.ts`). Consider extracting a shared mock helper.
 
 - [x] **2. README rewrite.** DONE (uncommitted). Replaced template copy with a
-      Corvex overview, setup (both secrets via `openssl`, dev DB compose,
-      `db:generate`/`db:migrate`, `createsuperuser`), env table, and the MCP
+      Corvex overview, setup (app-password hash plus both secrets, dev DB compose,
+      `db:generate`/`db:migrate`), env table, and the MCP
       client `.mcp.json` snippet. Verified var names, script names, platform port
       3000, ADR filename.
 

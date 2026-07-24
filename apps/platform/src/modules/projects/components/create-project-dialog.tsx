@@ -20,7 +20,6 @@ import {
 } from "@repo/ui/components/select";
 import { toast } from "@repo/ui/components/sonner";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { customersQueryOptions } from "../../customers/hooks/use-customers";
@@ -31,7 +30,6 @@ const noCustomerValue = "none";
 
 export function CreateProjectDialog() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const customers = useQuery(customersQueryOptions);
   const createProjectMutation = useCreateProjectMutation();
   const [open, setOpen] = useState(false);
@@ -72,11 +70,10 @@ export function CreateProjectDialog() {
           const message = error instanceof Error ? error.message : t("projects.form.fallbackError");
           toast.error(message);
         },
-        onSuccess: async (project) => {
+        onSuccess: () => {
           toast.success(t("projects.form.created"));
           setOpen(false);
           resetForm();
-          await navigate({ to: "/projects/$projectId", params: { projectId: project.id } });
         },
       },
     );
@@ -85,7 +82,7 @@ export function CreateProjectDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
+        <Button variant="secondary">
           <PlusIcon className="size-4" />
           {t("projects.new")}
         </Button>

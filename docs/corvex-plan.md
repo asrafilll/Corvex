@@ -4,11 +4,11 @@ Single-user, MCP-native project management. Domain language: see [CONTEXT.md](..
 
 ## Context
 
-Repo is a clean pnpm monorepo template (Hono API + Prisma 7/Postgres + Better Auth, React/Vite/TanStack platform + admin apps, shadcn via `packages/ui`). No domain code exists yet. Goal: Linear-flavored tool where each project holds everything (customer, status, budget/payments, tasks, milestones, notes, encrypted secrets), and Phase 2 exposes a project-scoped MCP server so a coding agent connected to a repo can read project context and manage tasks autonomously.
+Corvex is a pnpm monorepo with a Hono API, Prisma 7/Postgres, and a React/Vite/TanStack platform app. Each Project holds its Customer, status, budget/Payments, Tasks, Milestones, Notes, encrypted Secrets, and project-scoped MCP Tokens.
 
 ## Locked decisions
 
-- **Single user.** No orgs/roles/sharing. Platform app hosts Corvex UI; admin app untouched.
+- **Single user.** No orgs/roles/sharing, registration, Profile, or admin app. Human access uses one app password and an HTTP-only browser-session cookie. MCP authentication remains project-scoped Bearer tokens and never accepts the app session.
 - **Customer = own entity**, 1:N projects, optional on project (internal projects allowed).
 - **Project status:** `Lead → Active ⇄ OnHold → Completed`, `Cancelled` from anywhere.
 - **Task:** lean Linear-ish — title, markdown description, status (Todo/InProgress/Done/Cancelled), priority (None/Low/Medium/High/Urgent), optional dueDate, manual `order` int.
@@ -22,9 +22,9 @@ Repo is a clean pnpm monorepo template (Hono API + Prisma 7/Postgres + Better Au
 
 ### 1. Foundations
 
-- `packages/config/src/index.ts`: add `SECRETS_ENCRYPTION_KEY` (dev default; prod superRefine mirroring `BETTER_AUTH_SECRET` — must be set, non-default, 32 bytes hex/base64). Export `secretsConfig`. Update `.env.example`.
+- `packages/config/src/index.ts`: `SECRETS_ENCRYPTION_KEY` must be set to a non-default 32-byte hex/base64 key in production. `APP_PASSWORD_HASH` must be a Corvex scrypt hash and `APP_SESSION_SECRET` must be at least 32 characters in production.
 - `apps/api/src/utils/secret-crypto.ts`: Node crypto only, no new dep. `encryptSecret`/`decryptSecret`, random 12-byte IV, authTag verify, key asserted 32 bytes at boot, `v1.` version prefix.
-- `apps/api/prisma/schema.prisma`: append (don't touch Better Auth models):
+- `apps/api/prisma/schema.prisma`: Corvex models live below the inactive legacy auth models, which remain untouched for migration safety:
   - Enums: `ProjectStatus`, `TaskStatus`, `TaskPriority`.
   - `Customer` (name, email?, phone?, company?, notes?, timestamps).
   - `Project` (name, description? md, status default Lead, startDate?, deadline?, budgetAmount? `Decimal(14,2)`, currency default, customerId? → `SetNull` on customer delete, timestamps, `@@index([status])`).
@@ -38,9 +38,9 @@ Repo is a clean pnpm monorepo template (Hono API + Prisma 7/Postgres + Better Au
 
 ### 2. API modules (`apps/api/src/modules/`)
 
-Follow profile/users pattern: `router.ts` / `schema.ts` / `services.ts` / `types.ts`, chained routers mounted in `app.ts` so `AppType` feeds the RPC client.
+Use `router.ts` / `schema.ts` / `services.ts` / `types.ts`, with chained routers mounted in `app.ts` so `AppType` feeds the RPC client.
 
-- `auth/middleware.ts`: add `requireUser` (any authed user; same shape as `requireAdmin`).
+- `auth/middleware.ts`: `requireAppSession` gates every human-facing Corvex route. `/auth/unlock` verifies the scrypt hash with rate limiting and creates a signed browser-session cookie; `/auth/lock` clears it.
 - `customers/`: CRUD; list with project counts; detail with projects.
 - `projects/`: CRUD; list with `?status=` filter; detail returns everything — customer, ordered tasks, milestones by date, payments + computed paidTotal/outstanding (with `Prisma.Decimal`), notes, secrets **metadata only**, tokens metadata only. Shared `findProjectOrNull` guard → 404 for nested routes.
 - Nested under `/projects/:projectId/`:
@@ -54,7 +54,9 @@ Follow profile/users pattern: `router.ts` / `schema.ts` / `services.ts` / `types
 
 - Routes:
   - `projects.index.tsx` — list with status filter tabs, name/customer/deadline/budget columns, new-project dialog.
-  - `projects.$projectId.tsx` — dense Linear-style detail: header (name, status select, deadline), customer card, budget card (payments, outstanding, inline add-payment), milestones checklist, tasks grouped by status (inline add, priority badges, reorder), notes with markdown render, secrets masked with reveal + copy + auto-rehide, MCP tokens card (create dialog shows token once, revoke).
+  - `projects.$projectId.tsx` — full-width tabbed detail: header (name, status select, deadline); Overview (customer, budget, notes); focused Tasks, Payments, Milestones, Secrets, and MCP Tokens tabs. Tasks are grouped by status and created through a Title + Description dialog. Secrets stay masked with reveal + copy + auto-rehide; token creation shows the raw token once.
+  - Task detail editing exposes the existing status, priority, due date, title, and markdown-description fields. Project detail also includes an Activity tab for append-only UI/MCP mutation history.
+  - The shell command palette provides allowlisted global search across Projects, Customers, Tasks, and Notes plus Project-aware quick Task capture. Secrets and MCP Token material are never searchable.
   - `customers.index.tsx`, `customers.$customerId.tsx` — list + detail with their projects.
 - Feature hooks per resource (TanStack Query `queryOptions` + mutations invalidating `["projects", projectId]`), pattern of existing `modules/auth/`.
 - `app-shell.tsx`: add Projects + Customers nav items; i18n strings via `@repo/i18n`.
@@ -75,7 +77,7 @@ Follow profile/users pattern: `router.ts` / `schema.ts` / `services.ts` / `types
 
 ## Tests
 
-Style of existing `apps/api/src/app.test.ts` (mock prisma + auth, drive `app.request`):
+Style of existing `apps/api/src/app.test.ts` (mock Prisma and `readAppSession`, drive `app.request`):
 
 - Crypto unit: round-trip, unique IVs per call, tamper → throw, wrong key, bad format.
 - Token unit: format/prefix, hash determinism.

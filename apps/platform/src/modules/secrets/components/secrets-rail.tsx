@@ -41,21 +41,28 @@ export function SecretsRail({ projectId, secrets }: { projectId: string; secrets
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col gap-2">
+    <section className="flex max-w-5xl flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t("projectDetail.secrets.title")} <span className="font-normal">{secrets.length}</span>
-        </h3>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-bold">{t("projectDetail.secrets.title")}</h2>
+          <span className="rounded-sm bg-muted px-2 py-0.5 text-sm font-semibold tabular-nums text-muted-foreground">
+            {secrets.length}
+          </span>
+        </div>
         <CreateSecretDialog projectId={projectId} />
       </div>
       {secrets.length > 0 ? (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-3 md:grid-cols-2">
           {secrets.map((secret) => (
             <SecretRow key={secret.id} projectId={projectId} secret={secret} />
           ))}
         </ul>
-      ) : null}
-    </div>
+      ) : (
+        <p className="rounded-xl bg-muted/60 px-4 py-8 text-base text-muted-foreground">
+          {t("projectDetail.secrets.empty")}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -103,13 +110,13 @@ function SecretRow({ projectId, secret }: { projectId: string; secret: Secret })
   }
 
   return (
-    <li className="flex flex-col gap-0.5">
+    <li className="flex min-h-28 flex-col gap-1 rounded-xl bg-muted/60 p-4">
       <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate font-medium">{secret.name}</span>
+        <span className="min-w-0 flex-1 truncate text-base font-semibold">{secret.name}</span>
         <button
           type="button"
           aria-label={t("projectDetail.secrets.reveal")}
-          className="text-muted-foreground hover:text-foreground"
+          className="p-1.5 text-muted-foreground hover:text-foreground"
           onClick={toggleReveal}
           disabled={revealSecretMutation.isPending}
         >
@@ -123,7 +130,7 @@ function SecretRow({ projectId, secret }: { projectId: string; secret: Secret })
           <button
             type="button"
             aria-label={t("projectDetail.secrets.copy")}
-            className="text-muted-foreground hover:text-foreground"
+            className="p-1.5 text-muted-foreground hover:text-foreground"
             onClick={copyValue}
           >
             <CopyIcon className="size-3.5" />
@@ -134,7 +141,7 @@ function SecretRow({ projectId, secret }: { projectId: string; secret: Secret })
             <button
               type="button"
               aria-label={t("projectDetail.secrets.delete")}
-              className="text-muted-foreground hover:text-destructive"
+              className="p-1.5 text-muted-foreground hover:text-destructive"
             >
               <Trash2Icon className="size-3.5" />
             </button>
@@ -166,9 +173,11 @@ function SecretRow({ projectId, secret }: { projectId: string; secret: Secret })
           </AlertDialogContent>
         </AlertDialog>
       </div>
-      <code className="truncate font-mono text-muted-foreground">{revealed ?? "••••••••"}</code>
+      <code className="truncate font-mono text-sm text-muted-foreground">
+        {revealed ?? "••••••••"}
+      </code>
       {secret.description ? (
-        <span className="truncate text-muted-foreground">{secret.description}</span>
+        <span className="truncate text-sm text-muted-foreground">{secret.description}</span>
       ) : null}
     </li>
   );
@@ -220,8 +229,9 @@ function CreateSecretDialog({ projectId }: { projectId: string }) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button type="button" size="icon" variant="ghost" className="size-6">
+        <Button type="button" variant="secondary" className="h-11 px-4 text-base">
           <PlusIcon className="size-4" />
+          {t("projectDetail.secrets.addTitle")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

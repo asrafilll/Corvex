@@ -1,32 +1,21 @@
 import type { Context, Next } from "hono";
-import { auth, type AuthSession, type AuthUser } from "./auth";
+import { readAppSession } from "./auth";
 
-export type AuthVariables = {
-  session: AuthSession | null;
-  user: AuthUser | null;
+export type AppAuthVariables = {
+  appAuthenticated: boolean;
 };
 
-export async function loadAuthSession(c: Context<{ Variables: AuthVariables }>, next: Next) {
-  const session = await auth.api.getSession({
-    headers: c.req.raw.headers,
-  });
+export async function loadAppSession(c: Context<{ Variables: AppAuthVariables }>, next: Next) {
+  if (c.req.path === "/mcp" || c.req.path.startsWith("/mcp/")) {
+    c.set("appAuthenticated", false);
+    await next();
+    return;
+  }
 
-  c.set("session", session?.session ?? null);
-  c.set("user", session?.user ?? null);
-
+  c.set("appAuthenticated", await readAppSession(c));
   await next();
 }
 
-export function requireAdmin(c: Context<{ Variables: AuthVariables }>) {
-  const user = c.get("user");
-
-  if (!user?.role?.split(",").includes("admin")) {
-    return null;
-  }
-
-  return user;
-}
-
-export function requireUser(c: Context<{ Variables: AuthVariables }>) {
-  return c.get("user");
+export function requireAppSession(c: Context<{ Variables: AppAuthVariables }>) {
+  return c.get("appAuthenticated") === true;
 }

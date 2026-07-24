@@ -1,4 +1,6 @@
 import { Prisma, prisma } from "../../utils/prisma";
+import type { ActivityActor } from "../activities/services";
+import { withProjectActivity } from "../activities/services";
 import type { CreatePaymentInput, UpdatePaymentInput } from "./schema";
 
 export async function listPayments(projectId: string) {
@@ -17,34 +19,73 @@ export async function findPaymentOrNull(projectId: string, paymentId: string) {
   });
 }
 
-export async function createPayment(projectId: string, input: CreatePaymentInput) {
-  return {
-    payment: serializePayment(
-      await prisma.payment.create({
-        data: { ...input, amount: new Prisma.Decimal(input.amount), projectId },
-      }),
-    ),
-  };
+export async function createPayment(
+  projectId: string,
+  input: CreatePaymentInput,
+  actor: ActivityActor,
+) {
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      payment: serializePayment(
+        await transaction.payment.create({
+          data: { ...input, amount: new Prisma.Decimal(input.amount), projectId },
+        }),
+      ),
+    }),
+    ({ payment }) => ({
+      action: "Created",
+      entityId: payment.id,
+      entityLabel: "Payment",
+      entityType: "Payment",
+      projectId,
+    }),
+  );
 }
 
-export async function updatePayment(paymentId: string, input: UpdatePaymentInput) {
+export async function updatePayment(
+  projectId: string,
+  paymentId: string,
+  input: UpdatePaymentInput,
+  actor: ActivityActor,
+) {
   const { amount, ...data } = input;
 
-  return {
-    payment: serializePayment(
-      await prisma.payment.update({
-        where: { id: paymentId },
-        data: {
-          ...data,
-          amount: amount === undefined ? undefined : new Prisma.Decimal(amount),
-        },
-      }),
-    ),
-  };
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      payment: serializePayment(
+        await transaction.payment.update({
+          where: { id: paymentId },
+          data: {
+            ...data,
+            amount: amount === undefined ? undefined : new Prisma.Decimal(amount),
+          },
+        }),
+      ),
+    }),
+    ({ payment }) => ({
+      action: "Updated",
+      entityId: payment.id,
+      entityLabel: "Payment",
+      entityType: "Payment",
+      projectId,
+    }),
+  );
 }
 
-export async function deletePayment(paymentId: string) {
-  await prisma.payment.delete({ where: { id: paymentId } });
+export async function deletePayment(projectId: string, paymentId: string, actor: ActivityActor) {
+  await withProjectActivity(
+    actor,
+    (transaction) => transaction.payment.delete({ where: { id: paymentId } }),
+    (payment) => ({
+      action: "Deleted",
+      entityId: payment.id,
+      entityLabel: "Payment",
+      entityType: "Payment",
+      projectId,
+    }),
+  );
 
   return { ok: true };
 }

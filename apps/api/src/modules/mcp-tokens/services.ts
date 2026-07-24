@@ -1,5 +1,7 @@
 import { generateMcpToken, hashMcpToken } from "../../utils/mcp-token";
 import { prisma } from "../../utils/prisma";
+import type { ActivityActor } from "../activities/services";
+import { withProjectActivity } from "../activities/services";
 import type { CreateMcpTokenInput } from "./schema";
 
 // ADR-0002: tokenHash never leaves the database layer.
@@ -28,25 +30,49 @@ export async function findMcpTokenOrNull(projectId: string, tokenId: string) {
   });
 }
 
-export async function createMcpToken(projectId: string, input: CreateMcpTokenInput) {
+export async function createMcpToken(
+  projectId: string,
+  input: CreateMcpTokenInput,
+  actor: ActivityActor,
+) {
   // The raw token exists only in this response — the database stores its hash.
   const token = generateMcpToken();
 
-  return {
-    mcpToken: await prisma.mcpToken.create({
-      data: { name: input.name, tokenHash: hashMcpToken(token), projectId },
-      select: mcpTokenSelect,
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      mcpToken: await transaction.mcpToken.create({
+        data: { name: input.name, tokenHash: hashMcpToken(token), projectId },
+        select: mcpTokenSelect,
+      }),
+      token,
     }),
-    token,
-  };
+    ({ mcpToken }) => ({
+      action: "Created",
+      entityId: mcpToken.id,
+      entityLabel: mcpToken.name,
+      entityType: "McpToken",
+      projectId,
+    }),
+  );
 }
 
-export async function revokeMcpToken(tokenId: string) {
-  return {
-    mcpToken: await prisma.mcpToken.update({
-      where: { id: tokenId },
-      data: { revoked: true },
-      select: mcpTokenSelect,
+export async function revokeMcpToken(projectId: string, tokenId: string, actor: ActivityActor) {
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      mcpToken: await transaction.mcpToken.update({
+        where: { id: tokenId },
+        data: { revoked: true },
+        select: mcpTokenSelect,
+      }),
     }),
-  };
+    ({ mcpToken }) => ({
+      action: "Revoked",
+      entityId: mcpToken.id,
+      entityLabel: mcpToken.name,
+      entityType: "McpToken",
+      projectId,
+    }),
+  );
 }

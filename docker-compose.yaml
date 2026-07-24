@@ -1,18 +1,18 @@
-name: monorepo-template
+name: corvex
 
 x-app: &app
   build:
     context: .
     target: app
-  image: monorepo-template-app
+  image: corvex-app
 
 x-server-environment: &server-environment
   NODE_ENV: "${NODE_ENV:-production}"
   API_PORT: "8000"
-  BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}"
-  BETTER_AUTH_URL: "${BETTER_AUTH_URL:-http://api.localhost}"
-  CLIENT_ORIGINS: "${CLIENT_ORIGINS:-http://localhost,http://admin.localhost}"
-  DATABASE_URL: "${DOCKER_DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/monorepo_template?schema=public}"
+  APP_PASSWORD_HASH: "${APP_PASSWORD_HASH:?Set APP_PASSWORD_HASH in .env}"
+  APP_SESSION_SECRET: "${APP_SESSION_SECRET:?Set APP_SESSION_SECRET in .env}"
+  CLIENT_ORIGINS: "${CLIENT_ORIGINS:-http://localhost}"
+  DATABASE_URL: "${DOCKER_DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/corvex?schema=public}"
   ENABLE_TELEMETRY: "${ENABLE_TELEMETRY:-false}"
   LOG_LEVEL: "${LOG_LEVEL:-info}"
   REDIS_URL: "${DOCKER_REDIS_URL:-redis://redis:6379}"
@@ -27,7 +27,7 @@ x-server-environment: &server-environment
   TELEMETRY_API_KEY_HEADER: "${TELEMETRY_API_KEY_HEADER:-authorization}"
   TELEMETRY_EXPORTER: "${TELEMETRY_EXPORTER:-console}"
   TELEMETRY_EXPORTER_OTLP_ENDPOINT: "${TELEMETRY_EXPORTER_OTLP_ENDPOINT:-}"
-  TELEMETRY_SERVICE_NAMESPACE: "${TELEMETRY_SERVICE_NAMESPACE:-monorepo-template}"
+  TELEMETRY_SERVICE_NAMESPACE: "${TELEMETRY_SERVICE_NAMESPACE:-corvex}"
 
 services:
   caddy:
@@ -35,13 +35,12 @@ services:
       context: .
       target: caddy
       args:
-        VITE_API_URL: "${VITE_API_URL:-http://api.localhost}"
-    image: monorepo-template-caddy
-    container_name: monorepo-template-caddy
+        VITE_API_URL: "${VITE_API_URL:-/api}"
+    image: corvex-caddy
+    container_name: corvex-caddy
     restart: unless-stopped
     environment:
       PLATFORM_SITE_ADDRESS: "${PLATFORM_SITE_ADDRESS:-http://localhost}"
-      ADMIN_SITE_ADDRESS: "${ADMIN_SITE_ADDRESS:-http://admin.localhost}"
       API_SITE_ADDRESS: "${API_SITE_ADDRESS:-http://api.localhost}"
     ports:
       - "${HTTP_PORT:-80}:80"
@@ -55,23 +54,23 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: monorepo-template-postgres
+    container_name: corvex-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: monorepo_template
+      POSTGRES_DB: corvex
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d monorepo_template"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d corvex"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: monorepo-template-redis
+    container_name: corvex-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -84,7 +83,7 @@ services:
 
   api:
     <<: *app
-    container_name: monorepo-template-api
+    container_name: corvex-api
     restart: unless-stopped
     environment:
       <<: *server-environment
@@ -111,8 +110,8 @@ services:
 
   worker:
     <<: *app
-    image: monorepo-template-app
-    container_name: monorepo-template-worker
+    image: corvex-app
+    container_name: corvex-worker
     restart: unless-stopped
     environment:
       <<: *server-environment

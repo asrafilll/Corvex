@@ -31,15 +31,15 @@ export function NotesSection({ projectId, notes }: { projectId: string; notes: N
   const deleteNoteMutation = useDeleteNoteMutation(projectId);
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t("projectDetail.notes.title")} <span className="font-normal">{notes.length}</span>
+        <h2 className="text-sm font-bold uppercase tracking-[0.1em]">
+          {t("projectDetail.notes.title")} <span className="font-semibold">{notes.length}</span>
         </h2>
         <NoteDialog
           projectId={projectId}
           trigger={
-            <Button type="button" size="sm" variant="ghost">
+            <Button type="button" size="sm" variant="secondary">
               <PlusIcon className="size-4" />
               {t("projectDetail.notes.add")}
             </Button>
@@ -47,15 +47,19 @@ export function NotesSection({ projectId, notes }: { projectId: string; notes: N
         />
       </div>
       {notes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("projectDetail.notes.empty")}</p>
+        <p className="rounded-xl bg-muted/60 px-4 py-8 text-base text-muted-foreground">
+          {t("projectDetail.notes.empty")}
+        </p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-5">
           {notes.map((note) => (
-            <article key={note.id} className="rounded-md border px-3 py-2.5">
+            <article key={note.id} className="rounded-xl border border-border bg-card px-4 py-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-medium">{note.title}</h3>
-                  <p className="text-xs text-muted-foreground">{formatDate(note.updatedAt)}</p>
+                  <h3 className="text-lg font-bold">{note.title}</h3>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {formatDate(note.updatedAt)}
+                  </p>
                 </div>
                 <div className="flex shrink-0 items-center">
                   <NoteDialog
@@ -94,7 +98,7 @@ export function NotesSection({ projectId, notes }: { projectId: string; notes: N
                   </Button>
                 </div>
               </div>
-              <div className="mt-2 text-sm leading-6 [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_h1]:mt-2 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2 [&_table]:w-full [&_th]:border [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border [&_td]:px-2 [&_td]:py-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5">
+              <div className="mt-3 text-base leading-7 [&_a]:font-semibold [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-highlight [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-sm [&_h1]:mt-3 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:mt-3 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-bold [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted [&_pre]:p-3 [&_table]:w-full [&_th]:border [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border [&_td]:px-2 [&_td]:py-1 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
                 <Markdown remarkPlugins={[remarkGfm]}>{note.body}</Markdown>
               </div>
             </article>

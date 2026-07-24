@@ -1,21 +1,34 @@
 ---
 name: corvex-design
-description: Corvex design system — Linear-like density, shadcn/ui from @repo/ui, base-mira purple theme (shadcn preset b5x0FmNlI). Use when building or styling any UI in apps/platform or apps/admin — new pages, components, dialogs, tables, badges, status colors, spacing, dark mode.
+description: Corvex design system — black-and-white editorial interface with Linear-like density, readable Space Grotesk typography, selective hard black shadows, and a saturated blue-purple accent. Use when building or styling any UI in apps/platform — new pages, components, dialogs, tables, badges, status colors, spacing.
 ---
 
 # Corvex Design
 
-Linear-inspired: dense, quiet, keyboard-fast. Neutral surfaces; purple only where attention belongs.
+Black-and-white editorial skin on a Linear-dense skeleton: pure white canvas, near-black ink, soft gray structure, selective hard black shadows, one saturated blue-purple accent, and Space Grotesk everywhere. Layout stays dense, readable, and keyboard-fast. When accent appears, it is confident and high-contrast rather than a faint tint.
 
-Style locked 2026-07-05: user picked "Variant A — Linear Dense" from the 5-way `/prototype-styles` bake-off (dark three-pane, compact rows, violet accent) over document / dashboard / terminal / soft-studio directions. Layout rules below encode that choice.
+Style history: "Variant A — Linear Dense" (dark, violet) was locked 2026-07-05; superseded 2026-07-20 by a cream neo-brutalist pass, then refined from user references into the current direction. Layout and typography improvements survive, the canvas is mandatory white, and black outlines/hard shadows are allowed only on focal surfaces. Decorative stickers and ornamental excess do not survive.
 
 ## Theme
 
-Tokens live in `packages/ui/src/styles.css` (`:root` + `.dark`). Canonical values from shadcn preset `b5x0FmNlI` ("base-mira") are in [THEME.md](THEME.md) — apply/verify against that file, never invent color values. Key facts:
+Tokens live in `packages/ui/src/styles.css` (`:root` + `.dark` + `@theme inline`). Canonical values are in [THEME.md](THEME.md) — apply/verify against that file, never invent color values. Key facts:
 
-- Base: neutral. Primary: purple `oklch(0.491 0.27 292.581)` light / `oklch(0.432 0.232 292.759)` dark.
-- `--radius: 0.45rem` (preset overrides template's 0.625rem).
-- Dark mode = `.dark` class on root. Every screen must look right in both modes — use token classes (`bg-background`, `text-muted-foreground`), never hardcoded colors.
+- Platform forces `forcedTheme="light"`; the application background is always pure white, while the app shell sidebar is ink black.
+- Base: white `oklch(1 0 0)`; neutral ink foreground `oklch(0.18 0 0)`. Primary = ink. Highlight = saturated blue-purple `oklch(0.55 0.26 277)`.
+- `--border` and `--input` are soft gray. Default surfaces use one-pixel borders.
+- Shadows are hard black offsets with no blur. They are reserved for focal surfaces: selected navigation, the unlock card, primary data frames, black summary panels, and overlays. Routine cards, task groups, note cards, and form fields stay flat.
+- `--radius: 0.625rem` — cards `rounded-xl`, controls `rounded-md/lg`.
+- Font: `Space Grotesk Variable` (self-hosted via `@fontsource-variable/space-grotesk`, imported in styles.css). Headings bold + tracking-tight via base layer.
+- Focus ring and text selection = blue-purple (`--ring` / `--highlight`).
+
+## Component rules
+
+- Routine surfaces (Card, Select, inputs, tabs list, checkbox, switch) use `border border-border`. Avoid stacking bordered cards inside bordered cards.
+- Buttons: default = ink fill with a small hard shadow; secondary = blue-purple fill with white text and a small hard shadow; outline = flat white; ghost/link stay flat. No sticker-like press translations.
+- Badges may use blue-purple where state needs attention; neutral metadata stays outline.
+- Checked/selected states (checkbox, switch, active sidebar item, active tab) = blue-purple fill with an ink border.
+- Focal frames may use `border-foreground shadow-sm/md`; ordinary content must not. Do not add gradients, glassmorphism, decorative rotated shapes, or ornamental borders. Use whitespace and typography first.
+- Never stack consecutive divider lines. A page header, tab band, and content region should not each draw their own border; use spacing and a muted fill to group them, then keep the ink border/shadow on the selected control.
 
 ## Components
 
@@ -26,35 +39,35 @@ Tokens live in `packages/ui/src/styles.css` (`:root` + `.dark`). Canonical value
 
 ## Density & layout
 
-- Body text `text-sm`; secondary metadata `text-xs text-muted-foreground`. Page titles `text-lg font-semibold` — nothing larger inside the app shell.
-- Pages: existing sidebar shell (`modules/app-shell`). Page = sticky header row (title left, actions right, `h-12 border-b px-4`) + content `px-4 py-4`. Full-width; no centered max-width containers for list/detail views.
-- Tables/lists: compact rows (`py-2`), hover `hover:bg-muted/50`, whole row clickable for navigation.
-- Project detail = three-pane: app sidebar | main content (`min-w-0 flex-1`) | right properties rail (`w-64 border-l px-4 py-4 text-xs`). Rail = label/value metadata pairs (label `text-muted-foreground`, value beneath) — customer, budget, paid `text-emerald-600 dark:text-emerald-400`, outstanding `text-amber-600 dark:text-amber-400` — then compact milestone checklist and masked secret list. No card grid on project detail; the rail replaces it.
-- Detail header = breadcrumb row (`h-12 border-b px-5`): parent crumb muted / name / status pill, due date pushed right.
-- Section headers (task groups, rail sections): `text-[11px] font-semibold uppercase tracking-wider text-muted-foreground` + muted count.
-- Task lists: flat dense rows, never cards. Grouped by status (In Progress → Todo → Done). Row = `h-8 items-center gap-2.5` in a `divide-y border-y` list: priority dot left, title, due date right `text-xs text-muted-foreground`. Done rows `text-muted-foreground line-through`.
-- Cards elsewhere (dashboard, settings): `gap-4` grid, one `Card` per domain section, `CardTitle` = `text-sm font-medium`.
+- Primary app content uses `text-base`; secondary metadata uses `text-sm text-muted-foreground`. Page titles are `text-3xl font-bold tracking-tight`. Type must stay comfortably readable even in data-heavy views.
+- Pages: existing sidebar shell (`modules/app-shell`). Page = header row (title left, actions right, `min-h-20 border-b bg-card px-6 py-4`) + content `px-6 py-6`. Full-width; no centered max-width containers for list/detail views.
+- Sidebar navigation uses an ink-black surface and always pairs white labels with `lucide-react` icons. Navigation rows are at least `h-11 text-[15px]`; the active item is blue-purple with white text and a subtle white border. It stays flat because a black hard shadow disappears against the sidebar.
+- Tables/lists: place primary data tables in a `border-foreground bg-card shadow-md` frame, use a black header band with white text, `text-base` data, and rows around `py-3.5`. Hover with `hover:bg-accent`; keep the whole row clickable for navigation.
+- Project detail is a single full-width workspace with top-level tabs: Overview, Tasks, Payments, Milestones, Secrets, and MCP Tokens. Overview contains Customer, Budget, and Notes. Every operational collection gets its own focused tab; do not rebuild a stacked properties rail.
+- Detail header = breadcrumb row (`min-h-20 bg-card px-6 py-4`): parent crumb muted / name / status pill, due date pushed right. The tab band below it is also borderless; the selected tab supplies the visual anchor.
+- Section headers (task groups, rail sections): `text-xs font-black uppercase tracking-[0.12em]` + a bordered count.
+- Task lists: grouped by status (In Progress → Todo → Done) in `border bg-card` frames. Rows use `min-h-11`, `text-base`, priority marker left, title with optional two-line description, and due date right `text-sm text-muted-foreground`. Done titles use `text-muted-foreground line-through`. New Tasks are created through a `Dialog` with Title and Description; do not restore the inline add field.
+- Cards elsewhere (dashboard, settings): `gap-4` grid, one `Card` per domain section, `CardTitle` = `text-base font-bold`.
 - Create = `Dialog` with short form; edit = inline where cheap (status `Select`, checkbox toggles), dialog otherwise. Forms: `field.tsx` + zod, labels above inputs, one column.
 
 ## Color discipline
 
-- Surfaces stay neutral. Purple (`primary`) only: primary buttons, active nav item, focus rings, selected states.
-- Semantic status colors (the only non-token colors allowed; always pair with dark variant):
+- Surfaces stay white, gray, or black. Blue-purple (`highlight`) is the only brand color and appears decisively on selected navigation, active tabs, secondary actions, focus rings, and InProgress/Active state. Red remains reserved for destructive/error feedback.
+- Semantic status colors:
 
 | Meaning | Classes |
 |---|---|
 | Project Lead / Task Todo | `text-muted-foreground` (neutral) |
-| Active / InProgress | `text-violet-600 dark:text-violet-400` |
-| OnHold | `text-amber-600 dark:text-amber-400` |
-| Completed / Done | `text-emerald-600 dark:text-emerald-400` |
+| Active / InProgress | `bg-highlight` dot, solid `bg-highlight` pill |
+| OnHold | ink / mid-gray marker |
+| Completed / Done | ink marker |
 | Cancelled | `text-muted-foreground line-through` |
-| Priority Urgent | `text-red-600 dark:text-red-400` |
-| Priority High | `text-orange-600 dark:text-orange-400` |
-| Priority Medium/Low/None | `text-muted-foreground` |
+| Priority Urgent | `bg-primary` dot |
+| Priority High | `bg-highlight` dot |
+| Priority Medium/Low/None | progressively lighter neutral dots |
 
-- Status rendered as `Badge` variant `outline` with a colored dot (`size-1.5 rounded-full`), not filled colored badges. Exception — project status pill in the detail header uses a subtle tint: `border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300` (swap hue per the status table).
-- Task priority in rows = leading dot only (`size-2 rounded-full`), no text label: Urgent `bg-red-500`, High `bg-orange-400`, Medium `bg-yellow-400`, Low `bg-sky-400`, None `bg-muted-foreground/40`.
-- Money: `tabular-nums`; outstanding > 0 neutral, overdue/negative `text-red-600 dark:text-red-400`.
+- Status rendered as `Badge` variant `outline` with a bordered marker (`size-2 rounded-sm`), not a rainbow set of filled badges. Exception — the Active project status pill uses solid blue-purple with white text.
+- Money: `tabular-nums`; outstanding > 0 neutral, overdue/negative `text-red-600`.
 
 ## Voice
 

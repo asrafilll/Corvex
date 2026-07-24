@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { PlatformAppShell } from "../modules/app-shell/app-shell";
-import { meQueryOptions } from "../modules/auth/hooks/use-auth";
+import { appSessionQueryOptions } from "../modules/auth/hooks/use-auth";
 import { UnauthorizedError } from "../modules/auth/services";
 import { CreateCustomerDialog } from "../modules/customers/components/customer-form-dialog";
 import { customersQueryOptions } from "../modules/customers/hooks/use-customers";
@@ -14,7 +14,7 @@ import { customersQueryOptions } from "../modules/customers/hooks/use-customers"
 export const Route = createFileRoute("/customers/")({
   beforeLoad: async ({ context }) => {
     try {
-      await context.queryClient.ensureQueryData(meQueryOptions);
+      await context.queryClient.ensureQueryData(appSessionQueryOptions);
     } catch (error) {
       if (error instanceof UnauthorizedError) {
         throw redirect({ to: "/login" });

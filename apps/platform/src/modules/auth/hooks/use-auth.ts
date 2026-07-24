@@ -1,61 +1,36 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { authQueryKey } from "../schema";
-import { getCurrentUser, login, logout, register, updateProfile } from "../services";
+import { getAppSession, lock, unlock } from "../services";
 
-export const meQueryOptions = queryOptions({
-  queryKey: [...authQueryKey, "me"],
-  queryFn: getCurrentUser,
+export const appSessionQueryOptions = queryOptions({
+  queryKey: [...authQueryKey, "session"],
+  queryFn: getAppSession,
   retry: false,
 });
 
-export function useLoginMutation() {
+export function useUnlockMutation() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: login,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: authQueryKey });
-      await navigate({ to: "/" });
+    mutationFn: unlock,
+    onSuccess: async (session) => {
+      queryClient.setQueryData(appSessionQueryOptions.queryKey, session);
+      await navigate({ to: "/projects" });
     },
   });
 }
 
-export function useRegisterMutation() {
+export function useLockMutation() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: register,
+    mutationFn: lock,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: authQueryKey });
-      await navigate({ to: "/" });
-    },
-  });
-}
-
-export function useLogoutMutation() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: logout,
-    onSuccess: async () => {
-      queryClient.removeQueries({ queryKey: authQueryKey });
+      queryClient.clear();
       await navigate({ to: "/login" });
-    },
-  });
-}
-
-export function useUpdateProfileMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: updateProfile,
-    onSuccess: (user) => {
-      queryClient.setQueryData(meQueryOptions.queryKey, user);
-      void queryClient.invalidateQueries({ queryKey: authQueryKey });
     },
   });
 }

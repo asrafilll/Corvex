@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { type AuthVariables, requireUser } from "../auth/middleware";
+import { appActivityActor } from "../activities/services";
+import { type AppAuthVariables, requireAppSession } from "../auth/middleware";
 import { findProjectOrNull } from "../projects/services";
 import {
   createNoteSchema,
@@ -10,11 +11,11 @@ import {
 } from "./schema";
 import { createNote, deleteNote, findNoteOrNull, listNotes, updateNote } from "./services";
 
-export const projectNotesRouter = new Hono<{ Variables: AuthVariables }>()
+export const projectNotesRouter = new Hono<{ Variables: AppAuthVariables }>()
   .get("/", zValidator("param", projectNotesParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -31,9 +32,9 @@ export const projectNotesRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", projectNotesParamSchema),
     zValidator("json", createNoteSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -43,7 +44,7 @@ export const projectNotesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "not_found" }, 404);
       }
 
-      return c.json(await createNote(projectId, c.req.valid("json")), 201);
+      return c.json(await createNote(projectId, c.req.valid("json"), appActivityActor), 201);
     },
   )
   .patch(
@@ -51,9 +52,9 @@ export const projectNotesRouter = new Hono<{ Variables: AuthVariables }>()
     zValidator("param", noteParamSchema),
     zValidator("json", updateNoteSchema),
     async (c) => {
-      const user = requireUser(c);
+      const hasSession = requireAppSession(c);
 
-      if (!user) {
+      if (!hasSession) {
         return c.json({ error: "unauthorized" }, 401);
       }
 
@@ -63,13 +64,16 @@ export const projectNotesRouter = new Hono<{ Variables: AuthVariables }>()
         return c.json({ error: "not_found" }, 404);
       }
 
-      return c.json(await updateNote(noteId, c.req.valid("json")), 200);
+      return c.json(
+        await updateNote(projectId, noteId, c.req.valid("json"), appActivityActor),
+        200,
+      );
     },
   )
   .delete("/:noteId", zValidator("param", noteParamSchema), async (c) => {
-    const user = requireUser(c);
+    const hasSession = requireAppSession(c);
 
-    if (!user) {
+    if (!hasSession) {
       return c.json({ error: "unauthorized" }, 401);
     }
 
@@ -79,5 +83,5 @@ export const projectNotesRouter = new Hono<{ Variables: AuthVariables }>()
       return c.json({ error: "not_found" }, 404);
     }
 
-    return c.json(await deleteNote(noteId), 200);
+    return c.json(await deleteNote(projectId, noteId, appActivityActor), 200);
   });

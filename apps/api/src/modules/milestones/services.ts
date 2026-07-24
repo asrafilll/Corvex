@@ -1,4 +1,6 @@
 import { prisma } from "../../utils/prisma";
+import type { ActivityActor } from "../activities/services";
+import { withProjectActivity } from "../activities/services";
 import type { CreateMilestoneInput, UpdateMilestoneInput } from "./schema";
 
 export async function listMilestones(projectId: string) {
@@ -17,25 +19,66 @@ export async function findMilestoneOrNull(projectId: string, milestoneId: string
   });
 }
 
-export async function createMilestone(projectId: string, input: CreateMilestoneInput) {
-  return {
-    milestone: await prisma.milestone.create({
-      data: { ...input, projectId },
+export async function createMilestone(
+  projectId: string,
+  input: CreateMilestoneInput,
+  actor: ActivityActor,
+) {
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      milestone: await transaction.milestone.create({ data: { ...input, projectId } }),
     }),
-  };
+    ({ milestone }) => ({
+      action: "Created",
+      entityId: milestone.id,
+      entityLabel: milestone.name,
+      entityType: "Milestone",
+      projectId,
+    }),
+  );
 }
 
-export async function updateMilestone(milestoneId: string, input: UpdateMilestoneInput) {
-  return {
-    milestone: await prisma.milestone.update({
-      where: { id: milestoneId },
-      data: input,
+export async function updateMilestone(
+  projectId: string,
+  milestoneId: string,
+  input: UpdateMilestoneInput,
+  actor: ActivityActor,
+) {
+  return withProjectActivity(
+    actor,
+    async (transaction) => ({
+      milestone: await transaction.milestone.update({
+        where: { id: milestoneId },
+        data: input,
+      }),
     }),
-  };
+    ({ milestone }) => ({
+      action: "Updated",
+      entityId: milestone.id,
+      entityLabel: milestone.name,
+      entityType: "Milestone",
+      projectId,
+    }),
+  );
 }
 
-export async function deleteMilestone(milestoneId: string) {
-  await prisma.milestone.delete({ where: { id: milestoneId } });
+export async function deleteMilestone(
+  projectId: string,
+  milestoneId: string,
+  actor: ActivityActor,
+) {
+  await withProjectActivity(
+    actor,
+    (transaction) => transaction.milestone.delete({ where: { id: milestoneId } }),
+    (milestone) => ({
+      action: "Deleted",
+      entityId: milestone.id,
+      entityLabel: milestone.name,
+      entityType: "Milestone",
+      projectId,
+    }),
+  );
 
   return { ok: true };
 }

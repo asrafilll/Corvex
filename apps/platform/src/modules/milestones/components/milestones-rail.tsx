@@ -50,19 +50,43 @@ export function MilestonesRail({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {t("projectDetail.milestones.title")}{" "}
-        <span className="font-normal">{milestones.length}</span>
-      </h3>
+    <section className="flex max-w-5xl flex-col gap-6">
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-bold">{t("projectDetail.milestones.title")}</h2>
+        <span className="rounded-sm bg-muted px-2 py-0.5 text-sm font-semibold tabular-nums text-muted-foreground">
+          {milestones.length}
+        </span>
+      </div>
+      <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
+        <Input
+          value={name}
+          placeholder={t("projectDetail.milestones.name")}
+          className="h-11 text-base"
+          onChange={(event) => setName(event.target.value)}
+        />
+        <Input
+          value={date}
+          type="date"
+          className="h-11 text-base"
+          onChange={(event) => setDate(event.target.value)}
+        />
+        <Button
+          type="submit"
+          variant="secondary"
+          className="h-11 px-5 text-base"
+          disabled={createMilestoneMutation.isPending}
+        >
+          {t("projectDetail.milestones.add")}
+        </Button>
+      </form>
       {milestones.length > 0 ? (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="divide-y divide-border overflow-hidden rounded-xl bg-muted/50">
           {milestones.map((milestone) => (
-            <li key={milestone.id} className="flex items-center gap-2">
+            <li key={milestone.id} className="flex min-h-14 items-center gap-3 px-4 py-3">
               <Checkbox
                 id={`milestone-${milestone.id}`}
                 checked={milestone.done}
-                className="size-3.5"
+                className="size-5"
                 onCheckedChange={(checked) =>
                   updateMilestoneMutation.mutate(
                     { milestoneId: milestone.id, input: { done: checked === true } },
@@ -73,40 +97,21 @@ export function MilestonesRail({
               <label
                 htmlFor={`milestone-${milestone.id}`}
                 className={cn(
-                  "min-w-0 flex-1 truncate",
+                  "min-w-0 flex-1 truncate text-base font-medium",
                   milestone.done && "text-muted-foreground line-through",
                 )}
               >
                 {milestone.name}
               </label>
-              <span className="text-muted-foreground">{formatDate(milestone.date)}</span>
+              <span className="text-sm text-muted-foreground">{formatDate(milestone.date)}</span>
             </li>
           ))}
         </ul>
-      ) : null}
-      <form onSubmit={handleAdd} className="flex items-center gap-1">
-        <Input
-          value={name}
-          placeholder={t("projectDetail.milestones.name")}
-          className="h-7 text-xs"
-          onChange={(event) => setName(event.target.value)}
-        />
-        <Input
-          value={date}
-          type="date"
-          className="h-7 w-28 text-xs"
-          onChange={(event) => setDate(event.target.value)}
-        />
-        <Button
-          type="submit"
-          size="sm"
-          variant="outline"
-          className="h-7 px-2 text-xs"
-          disabled={createMilestoneMutation.isPending}
-        >
-          {t("projectDetail.milestones.add")}
-        </Button>
-      </form>
-    </div>
+      ) : (
+        <p className="rounded-xl bg-muted/60 px-4 py-8 text-base text-muted-foreground">
+          {t("projectDetail.milestones.empty")}
+        </p>
+      )}
+    </section>
   );
 }
